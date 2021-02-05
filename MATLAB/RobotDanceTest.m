@@ -1,5 +1,9 @@
 global pose
 
+a = 1;
+v = 0.8;
+t = 0;
+r = 0.5;
 
 for j = 1:2
     for i = 1:4
@@ -12,7 +16,7 @@ for j = 1:2
         joint_pos(4) = joint_pos(4) - 5;
         joint_pos(5) = joint_pos(5) + 5;
         joint_pos(6) = joint_pos(6) - 5;
-        [log, pose]= RemoteCommand(S, log, {'move', 'J', deg2rad(joint_pos),[1,0.5,0,0]}, false);
+        [log, pose]= RemoteCommand(S, log, {'move', 'J', deg2rad(joint_pos),[a,v,t,r]}, false);
     end
 
     for i = 1:4
@@ -24,7 +28,7 @@ for j = 1:2
         joint_pos(4) = joint_pos(4) + 5;
         joint_pos(5) = joint_pos(5) - 5;
         joint_pos(6) = joint_pos(6) + 5;
-        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[1,0.5,0,0]}, false);
+        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[a,v,t,r]}, false);
     end
     
     for i = 1:4
@@ -36,7 +40,7 @@ for j = 1:2
         joint_pos(4) = joint_pos(4) + 5;
         joint_pos(5) = joint_pos(5) - 5;
         joint_pos(6) = joint_pos(6) + 5;
-        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[1,0.5,0,0]}, false);
+        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[a,v,t,r]}, false);
     end
     
     for i = 1:4
@@ -49,7 +53,7 @@ for j = 1:2
         joint_pos(4) = joint_pos(4) - 5;
         joint_pos(5) = joint_pos(5) + 5;
         joint_pos(6) = joint_pos(6) - 5;
-        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[1,0.5,0,0]}, false);
+        [log, pose]= RemoteCommand(S, log, {'move', 'J',  deg2rad(joint_pos),[a,v,t,r]}, false);
     end
     
 end

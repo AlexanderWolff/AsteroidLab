@@ -1,0 +1,58 @@
+def Program_Template():
+   set_standard_analog_input_domain(0, 1)
+   set_standard_analog_input_domain(1, 1)
+   set_tool_analog_input_domain(0, 1)
+   set_tool_analog_input_domain(1, 1)
+   set_analog_outputdomain(0, 0)
+   set_analog_outputdomain(1, 0)
+   set_tool_voltage(0)
+   set_input_actions_to_default()
+   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+   set_payload(0.0)
+   set_gravity([0.0, 0.0, 9.82])
+   global Base=p[0.0,0.0,0.0,0.0,0.0,0.0]
+   rtde_set_watchdog("speed_slider_mask", 10.0, "ignore")
+   global setp = p[0,0,0,0,0,0]
+   
+   thread Update():
+      setp = get_actual_tcp_pose()
+      
+      while True:
+     
+         tmp = p[0,0,0,0,0,0]
+         
+         tmp[0] = read_input_float_register(0)
+         tmp[1] = read_input_float_register(1)
+         tmp[2] = read_input_float_register(2)
+         tmp[3] = read_input_float_register(3)
+         tmp[4] = read_input_float_register(4)
+         tmp[5] = read_input_float_register(5)
+         
+         if tmp != p[0,0,0,0,0,0]:
+            setp = tmp
+         end
+       
+         sync()
+     
+      end
+   end
+  
+   run Update()
+    
+   setp = get_actual_tcp_pose()
+   rtde_set_watchdog("input_int_register_0",1,"PAUSE")
+  
+   while True:
+      write_output_integer_register(0, 0)
+      sync()
+     
+      movel( setp, 1.2 , 0.25, 0, 0)
+     
+      write_output_integer_register(0, 1)
+      sync()
+  end
+   
+   
+   
+  
+end

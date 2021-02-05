@@ -1,0 +1,17 @@
+def Program_Template():
+   set_standard_analog_input_domain(0, 1)
+   set_standard_analog_input_domain(1, 1)
+   set_tool_analog_input_domain(0, 1)
+   set_tool_analog_input_domain(1, 1)
+   set_analog_outputdomain(0, 0)
+   set_analog_outputdomain(1, 0)
+   set_tool_voltage(0)
+   set_input_actions_to_default()
+   set_tcp(p[0.0,0.0,0.0,0.0,0.0,0.0])
+   set_payload(0.0)
+   set_gravity([0.0, 0.0, 9.82])
+   global Base=p[0.0,0.0,0.0,0.0,0.0,0.0]
+   rtde_set_watchdog("speed_slider_mask", 10.0, "ignore")
+  
+  popup("Message", "Title", False, False, blocking=True)
+end
