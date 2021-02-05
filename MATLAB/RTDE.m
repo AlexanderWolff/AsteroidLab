@@ -1,10 +1,10 @@
 
 
-classdef URobot_Protocol
+classdef RTDE < handle
     properties (GetAccess='public', SetAccess='private')
        ip
        port
-       TCP_connection
+       tcp
        
        % Stores Bytes from Robot
        buffer_stack
@@ -13,37 +13,46 @@ classdef URobot_Protocol
        
        output_format
        
+       input_format
+       
+       recipe_id
+       
     end
     
     methods
         
-        function this = Connect(this,ip,port)
-            % Create TCP Client for RTDE usage
-            this = URobot_Protocol;
+        function this = RTDE(ip,port)
             this.ip = ip;
             this.port = port;
-            this.TCP_connection = tcpclient(ip,port);
+        end
+        
+        function this = Connect(this)
+            % Create TCP Client for RTDE 
+            this.tcp = tcpclient(this.ip,this.port);
             
             this.buffer_stack = [];
             this.robot_packets = {};
             this.output_format = {};
+            this.input_format = {};
+            this.recipe_id = 0;
         end
         
-        function stack = Append(this,stack,data)
-            stack{length(stack)+1} = data;
-        end
-        
+%         function stack = Append(this,stack,data)
+%             stack{length(stack)+1} = data;
+%         end
+%         
         function this = Collect(this)
             % Collect Packets from URobot
-            if this.TCP_connection.BytesAvailable > 0
+            if this.tcp.BytesAvailable > 0
                 
-                incoming = read(this.TCP_connection, ...
-                                this.TCP_connection.BytesAvailable);
+                incoming = read(this.tcp, ...
+                                this.tcp.BytesAvailable);
                             
                 this.buffer_stack = [this.buffer_stack, incoming];
             end
             
-            this = this.Segment_Packets();
+            this.Segment_Packets();
+            this.Translate_Packet();
         end
         
         function this = Segment_Packets(this)
@@ -155,10 +164,10 @@ classdef URobot_Protocol
 
                                 if accepted == 1
                                     info = 1;
-                                    text = 'Protocol Version Request Success!';
+                                    text = 'Protocol Version sucessfully set';
                                 elseif accepted == 0
                                     info = 0;
-                                    text = 'Protocol Version Request Failure!';
+                                    text = 'Protocol Version not set';
                                 end 
                             end
 
@@ -177,7 +186,7 @@ classdef URobot_Protocol
                                 build = bin2dec(reshape(data(13:16,:)',1,[]));
 
                                 info = [major, minor, bugfix, build];
-                                text = sprintf("Major %d\tMinor %d\tBugfix %d\tBuild %d", ...
+                                text = sprintf("Major.Minor.Bugfix.Build : %d.%d.%d.%d", ...
                                     major, minor, bugfix, build);
                             end
 
@@ -214,14 +223,20 @@ classdef URobot_Protocol
                             info = split(text, ',');
                             this.output_format = info;
                             
+                            
                             text = sprintf("Output Format: %s",text);
 
                         case 'I' % Control Package Setup Inputs
-                            text = native2unicode(bin2dec(data)');
-                            info = split(text, ',');
-                            this.output_format = info;
                             
-                            text = sprintf("Output Format: %s",text);
+                            recipe = bin2dec(data(1,:));
+                            
+                            text = sprintf("Recipe %i: %s",recipe,native2unicode(bin2dec(data(2:end,:))'));
+                            
+                            info = {recipe,split(text, ',')};
+                            this.input_format = info{2};
+                            this.recipe_id = recipe;
+                            
+                            text = sprintf("Input Format: %s",text);
                             
                         case 'S' % Control Package Start
                             % data : accepted (uint8) 1 or 0
@@ -261,12 +276,11 @@ classdef URobot_Protocol
         
         function info = Convert_Output(this, data) 
             
-            output_format = this.output_format;
             
             info = {};
-            for i = 1:length(output_format)
+            for i = 1:length(this.output_format)
             
-               switch output_format{i}
+               switch this.output_format{i}
                    
                    case 'DOUBLE'
                        % 64 bits = 8 bytes
@@ -324,6 +338,60 @@ classdef URobot_Protocol
                    otherwise
                        info{i} = NaN;
                end
+            end
+        end
+        
+        function Start(this)
+            this.Send_Command('S', '');
+        end
+        
+        function Pause(this)
+            this.Send_Command('P', '');
+        end
+        
+        function [text, info] = Get_URControl_Version(this)
+            this.Send_Command('v', '');
+            pause(0.01);
+            this.Collect();
+            text = this.robot_packets{end}.text;
+            info = this.robot_packets{end}.info;
+        end
+        
+        function [text, info] = Set_Protocol_Version(this, version)
+            this.Send_Command('V', version);
+            pause(0.01);
+            this.Collect();
+            text = this.robot_packets{end}.text;
+            info = this.robot_packets{end}.info;
+        end
+        
+        function Log_Message(this,level, source, message)
+            %warning level : 
+            %exception (1), error (2), warning (3), info (4)
+            this.Send_Command('M', {message, source, level});
+        end
+        
+        function [text, info] = Set_Outputs(this,outputs)
+            % Configure Outputs
+            this.Send_Command('O', outputs);
+            pause(0.01);
+            this.Collect();
+            text = this.robot_packets{end}.text;
+            info = this.robot_packets{end}.info;
+        end
+        
+        function [text, info] = Set_Inputs(this,inputs)
+            % Configure Outputs
+            this.Send_Command('I', inputs);
+            while true
+                try
+                    pause(0.01);
+                    this.Collect();
+                    text = this.robot_packets{end}.text;
+                    info = this.robot_packets{end}.info;
+                    return
+                catch
+                end
             end
         end
         
@@ -394,7 +462,7 @@ classdef URobot_Protocol
             % size uint16 (2 byte unsigned int) 
             packet = [binary_packet_size, binary_command, binary_payload];
 
-            write(this.TCP_connection, packet);
+            write(this.tcp, packet);
         end
     end
 end

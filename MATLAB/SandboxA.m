@@ -4,10 +4,10 @@
 %command = fileread(directory+"/Program_Template.script");
 %command = fileread(directory+"/Robot_Dance.script");
 
-t = tcpclient('192.168.0.11',30002);
-directory = "/home/wolff/AsteroidLab/AsteroidLab/MATLAB";
-command = fileread(directory+"/Program_Control.script");
-write(t, unicode2native(command,'US-ASCII'));
+% t = tcpclient('192.168.0.11',30002);
+% directory = "/home/wolff/AsteroidLab/AsteroidLab/MATLAB";
+% command = fileread(directory+"/Program_Control.script");
+% write(t, unicode2native(command,'US-ASCII'));
 
 % %header = command(1:486);
 % %footer = command(548:end);
@@ -90,33 +90,14 @@ write(t, unicode2native(command,'US-ASCII'));
 % % stamp = reshape(dec2bin(pack(4:end))',1,[])
 
 % TODO write message intercepting code
-
-
-
-% UR3 = URobot_Protocol();
-% UR3 = UR3.Connect('192.168.0.11',30004);
-
-% UR3.Send_Command('O', 'timestamp,actual_q');
-% pause(0.5);
-% UR3 = UR3.Collect();
-% UR3 = UR3.Translate_Packet();
-% UR3.robot_packets{end}
 % 
-% UR3.Send_Command('S', '');
-% pause(1);
-% UR3.Send_Command('P', '');
-% pause(0.5);
-% UR3 = UR3.Collect();
-% UR3 = UR3.Translate_Packet();
-% UR3.robot_packets{end-1}.info{2}
 % 
-% UR3.Send_Command('V', 1);
-% 
-% UR3.Send_Command('I', 'input_double_register_20');
-% pause(0.5);
-% UR3 = UR3.Collect();
-% UR3 = UR3.Translate_Packet();
-% UR3.robot_packets{end}
+
+UR3 = URobot('192.168.0.11');
+UR3.Connect();
+UR3.rtde
+ 
+UR3.rtde.Set_Inputs('input_double_register_1')
 
 
 

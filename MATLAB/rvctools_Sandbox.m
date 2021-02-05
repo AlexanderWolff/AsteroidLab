@@ -65,17 +65,13 @@ for i = 1:6
     L{i} = Link('d', P(i,3), 'a', P(i,2), 'alpha', P(i,4));
 end
 
-UR3_robot = SerialLink([L{1},L{2},L{3},L{4},L{5},L{6}], 'name', 'UR3');
+UR3_sim = SerialLink([L{1},L{2},L{3},L{4},L{5},L{6}], 'name', 'UR3');
 
 %UR3_robot.fkine([0.1, 0.2, 0, 0, 0, 0])
-
-example_pose = [-0.41, -90.22, 25.79, -90.43, 0.62, 0.24];
-
+%example_pose = [-0.41, -90.22, 25.79, -90.43, 0.62, 0.24];
 
 %UR3_robot.plot(UR3.robot_packets{end-1}.info{2}')
+% setp1 = [-0.12, -0.43, 0.14, 0, 3.11, 0.04];
+% setp2 = [-0.12, -0.51, 0.21, 0, 3.11, 0.04];
 
-
-setp1 = [-0.12, -0.43, 0.14, 0, 3.11, 0.04];
-setp2 = [-0.12, -0.51, 0.21, 0, 3.11, 0.04];
-
-UR3_robot.plot(setp2)
+UR3_sim.plot(UR3.Get_Joint_Pos()')
