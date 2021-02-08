@@ -12,14 +12,14 @@ def Program_Template():
    set_gravity([0.0, 0.0, 9.82])
    global Base=p[0.0,0.0,0.0,0.0,0.0,0.0]
    rtde_set_watchdog("speed_slider_mask", 10.0, "ignore")
-   global setp = p[0,0,0,0,0,0]
+   global setp = [0,0,0,0,0,0]
    
    thread Update():
-      setp = get_actual_tcp_pose()
+      setp = get_actual_joint_positions()
       
       while True:
      
-         tmp = p[0,0,0,0,0,0]
+         tmp = [0,0,0,0,0,0]
          
          tmp[0] = read_input_float_register(0)
          tmp[1] = read_input_float_register(1)
@@ -28,20 +28,17 @@ def Program_Template():
          tmp[4] = read_input_float_register(4)
          tmp[5] = read_input_float_register(5)
          
-         if tmp != p[0,0,0,0,0,0]:
-            setp = tmp
-            
-            
-         end
+         setp = tmp
        
          sync()
      
       end
    end
   
+   write_output_integer_register(0, 0)
    run Update()
     
-   setp = get_actual_tcp_pose()
+   setp = get_actual_joint_positions()
    rtde_set_watchdog("input_int_register_0",1,"PAUSE")
    
    
@@ -50,7 +47,7 @@ def Program_Template():
       write_output_integer_register(0, 0)
       sync()
      
-      movel( setp, 0.1 , 0.1, 0, 0)
+      movej( setp, 0.1 , 0.1, 0, 0)
      
       write_output_integer_register(0, 1)
       sync()

@@ -7,7 +7,7 @@ function bin = double2bin(number)
     n = abs(number);
     exp = 0;
     if n >= 1
-        for i = 1:1023
+        for i = 0:1023
            if n/2^i < 2
                exp = i+1023;
                break;

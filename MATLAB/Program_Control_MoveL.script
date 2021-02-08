@@ -39,6 +39,7 @@ def Program_Template():
       end
    end
   
+   write_output_integer_register(0, 0)
    run Update()
     
    setp = get_actual_tcp_pose()
