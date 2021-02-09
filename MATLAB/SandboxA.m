@@ -93,18 +93,47 @@
 % 
 % 
 
-UR3 = URobot('192.168.0.11');
-UR3.Connect();
-UR3.rtde
- 
-UR3.rtde.Set_Inputs('input_double_register_1')
+% UR3 = URobot('192.168.0.11');
+% UR3.Connect();
+% UR3.rtde
+%  
+% UR3.rtde.Set_Inputs('input_double_register_1')
 
+t = length(l);
+actual_j = zeros(6, length(l));
+actual_v = zeros(6, length(l));
+target_j = zeros(6, length(l));
+target_v = zeros(6, length(l));
+target_a = zeros(6, length(l));
 
+for i = 1:length(l)
+   
+    log = l{i};
+    t(i) = log{1};
+    actual_j(:,i) = log{3};
+    actual_v(:,i) = log{4};
+    
+    target_j(:,i) = log{5};
+    target_v(:,i) = log{6};
+    target_a(:,i) = log{7};
+end
 
+t = t-min(t);
 
+t = seconds(t);
 
+figure
+subplot(3,1,1)
+plot(t, actual_j',t, target_j', ':k')
+title('Joint Positions')
 
+subplot(3,1,2)
+plot(t, actual_v',t, target_v', ':k')
+title('Joint Velocities')
 
+subplot(3,1,3)
+plot(t, target_a')
+title('Joint Accelerations')
 
 
 

@@ -57,7 +57,6 @@ def Program_Template():
       sync()
   end
    
-   
-   
+  write_output_integer_register(0, 0) 
   
 end

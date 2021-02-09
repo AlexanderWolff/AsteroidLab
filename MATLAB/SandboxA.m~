@@ -93,32 +93,26 @@
 % 
 % 
 
-UR3 = URobot_Protocol('192.168.0.11',30004);
-UR3.Connect();
+% UR3 = URobot('192.168.0.11');
+% UR3.Connect();
+% UR3.rtde
+%  
+% UR3.rtde.Set_Inputs('input_double_register_1')
 
-% UR3.Send_Command('O', 'timestamp,actual_q');
-% pause(0.5);
-% UR3.Collect();
-% UR3.Translate_Packet();
-% UR3.robot_packets{end}
-% 
-% UR3.Send_Command('S', '');
-% pause(1);
-% UR3.Send_Command('P', '');
-% pause(0.5);
-% UR3.Collect();
-% UR3.Translate_Packet();
-% UR3.robot_packets{end-1}.info{2}
-% 
-% UR3.Send_Command('V', 1);
-% 
-% UR3.Send_Command('I', 'input_double_register_20');
-% pause(0.5);
-% UR3.Collect();
-% UR3.Translate_Packet();
-% UR3.robot_packets{end}
+t = length(log);
+actual_j = zeros(6, length(log));
+actual_v = zeros(6, length(log));
+target_j = zeros(6, length(log));
+target_v = zeros(6, length(log));
+target_a = zeros(6, length(log));
 
-
+for i = 1:length(log)
+   
+    t(i) = log(i){1};
+    actual_j = log(){3}
+    
+    
+end
 
 
 

@@ -223,6 +223,9 @@ classdef RTDE < handle
                         info = Convert_Output(this, data);
 
                         this.log{length(this.log)+1} = info;
+                        
+                        info{1} = seconds(info{1});
+                        
                         this.latest = info;
 
                     case 'O' % Control Package Setup Outputs
@@ -378,6 +381,7 @@ classdef RTDE < handle
         
         function Start(this)
             this.Send_Command('S', '');
+            this.log = [];
         end
         
         function Pause(this)
@@ -429,6 +433,15 @@ classdef RTDE < handle
                 catch
                 end
             end
+        end
+        
+        function Flush(this)
+           
+            while this.tcp.BytesAvailable>0
+                read(this.tcp, this.tcp.BytesAvailable);
+            end
+            this.latest = cell(length(this.output_format),1);
+            
         end
         
         function this = Send_Command(this, command, payload)
