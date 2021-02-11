@@ -15,6 +15,8 @@ classdef RTDE < handle
        
        input_format
        
+       inputs
+       
        recipe_id
        
        log
@@ -41,6 +43,7 @@ classdef RTDE < handle
             this.recipe_id = 0;
             this.log = {};
             this.latest = {};
+            this.inputs = '';
         end
         
 %         function stack = Append(this,stack,data)
@@ -243,9 +246,7 @@ classdef RTDE < handle
 
                         text = sprintf("Recipe %i: %s",recipe,native2unicode(bin2dec(data(2:end,:))'));
 
-                        info = {recipe,split(text, ',')};
-                        this.input_format = info{2};
-                        this.recipe_id = recipe;
+                        info = {recipe,split(native2unicode(bin2dec(data(2:end,:))'), ',')};
 
                         text = sprintf("Input Format: %s",text);
 
@@ -421,7 +422,15 @@ classdef RTDE < handle
         end
         
         function [text, info] = Set_Inputs(this,inputs)
-            % Configure Outputs
+            
+            % Check if inputs are identical to this.inputs
+            if strcmp(this.inputs,inputs)
+                text = sprintf("Recipe %i: %s",this.recipe_id, strjoin(this.input_format,','));
+                info = this.input_format;
+                return
+            end
+            
+            % Configure Inputs
             this.Send_Command('I', inputs);
             while true
                 try
@@ -429,6 +438,10 @@ classdef RTDE < handle
                     this.Collect();
                     text = this.robot_packets{end}.text;
                     info = this.robot_packets{end}.info;
+                    
+                    this.input_format = info{2};
+                    this.recipe_id = info{1};
+                    this.inputs = inputs;
                     return
                 catch
                 end

@@ -21,7 +21,6 @@ def Program_Template():
       while True:
      
          tmp = [0,0,0,0,0,0]
-         
          tmp[0] = read_input_float_register(0)
          tmp[1] = read_input_float_register(1)
          tmp[2] = read_input_float_register(2)

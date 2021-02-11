@@ -70,11 +70,31 @@ classdef URobot < handle
         
         
         
-        function Move_TCP(this)
+        function Move_TCP(this, tcp, x)
 
-            tcp = [-0.12, -0.43, 0.14, 0, 3.11, 0.04]';
-            tcp = tcp';
             
+            
+            
+            if length(x)<2
+                max_speed = 0.5;
+                accel = 0.5;
+                time = 0;
+                blend_radius = 0;
+            else
+                if length(x) == 2
+                    max_speed = x(1);
+                    accel = x(2);
+                    time = 0;
+                    blend_radius = 0;
+                else
+                    max_speed = x(1);
+                    accel = x(2);
+                    time = x(3);
+                    blend_radius = x(4);
+                end
+            end
+            
+            tcp = tcp';
             tcp_bin = ones(1, length(tcp)*8); 
             for i = 1:length(tcp)
                 
@@ -86,11 +106,9 @@ classdef URobot < handle
             
             this.rtde.Flush();
             
-            this.rtde.Set_Outputs('timestamp,output_int_register_0')
+            this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd')
             
-            this.rtde.Set_Inputs('input_int_register_0,input_int_register_1,input_double_register_0,input_double_register_1,input_double_register_2,input_double_register_3,input_double_register_4,input_double_register_5')
-            
-            this.rtde.Start();
+            this.rtde.Set_Inputs('input_int_register_0,input_int_register_1,input_double_register_0,input_double_register_1,input_double_register_2,input_double_register_3,input_double_register_4,input_double_register_5,input_double_register_6,input_double_register_7,input_double_register_8,input_double_register_9')
             
             % Execute Move Program 
             t = tcpclient(this.ip,30002);
@@ -101,33 +119,54 @@ classdef URobot < handle
             
             live = 1;
             watchdog = 1;
+            
+            this.rtde.Start();
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
+            
             while true
                 watchdog = uint8(watchdog+1);
-                disp(this.rtde.latest);
+                
+                %verbose
+                if false
+                    disp(this.rtde.latest{1});
+                    disp(this.rtde.latest{2});
+
+                    disp('Actual (Pos, Vel)');
+                    disp([this.rtde.latest{3},this.rtde.latest{4}]);
+
+                    disp('Target (Pos, Vel, Acc)');
+                    disp([this.rtde.latest{5},this.rtde.latest{6},this.rtde.latest{7}]);
+                end
                 
                 if this.rtde.latest{2} == 1
                    disp("Move Ended") 
                    live = 0;
                    
-                   this.rtde.Send_Command('U', [bin2uint8_array(dec2bin(watchdog,32)), bin2uint8_array(dec2bin(live,32)), tcp_bin]);
+                   this.rtde.Start();
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
                    this.rtde.Pause();
                    break
                 end
                 
-                this.rtde.Send_Command('U', [bin2uint8_array(dec2bin(watchdog,32)), bin2uint8_array(dec2bin(live,32)), tcp_bin]);
+                this.rtde.Start();
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
                 pause(0.01);
                 this.rtde.Collect();
-                pause(0.5);
+                pause(0.0112);
             end
+            
+            this.latest_log = this.rtde.log;
         end
-        
         
         
         function Move_Joints(this, joints, x)
 
             if length(x)<2
-                max_speed = 5;
-                accel = 10;
+                max_speed = 0.5;
+                accel = 0.5;
                 time = 0;
                 blend_radius = 0;
             else
@@ -145,13 +184,12 @@ classdef URobot < handle
             end  
             
             
-            tcp = joints';
-            
-            tcp_bin = ones(1, length(tcp)*8); 
-            for i = 1:length(tcp)
+            joints = joints';
+            joints_bin = ones(1, length(joints)*8); 
+            for i = 1:length(joints)
                 
-                buffer = bin2uint8_array(double2bin(tcp(i)));
-                tcp_bin( (i*8)-7: i*8) = buffer;
+                buffer = bin2uint8_array(double2bin(joints(i)));
+                joints_bin( (i*8)-7: i*8) = buffer;
                 
             end
             
@@ -172,7 +210,7 @@ classdef URobot < handle
             watchdog = 1;
             
             this.rtde.Start();
-            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
                        double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
             
             
@@ -195,13 +233,13 @@ classdef URobot < handle
                    disp("Move Ended") 
                    live = 0;
                    
-                   this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+                   this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
                        double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
                    this.rtde.Pause();
                    break
                 end
                 
-                this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
+                this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
                        double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
                 pause(0.01);
                 this.rtde.Collect();

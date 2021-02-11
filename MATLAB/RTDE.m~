@@ -15,6 +15,8 @@ classdef RTDE < handle
        
        input_format
        
+       inputs
+       
        recipe_id
        
        log
@@ -41,6 +43,7 @@ classdef RTDE < handle
             this.recipe_id = 0;
             this.log = {};
             this.latest = {};
+            this.inputs = '';
         end
         
 %         function stack = Append(this,stack,data)
@@ -58,7 +61,6 @@ classdef RTDE < handle
             end
             
             this.Segment_Packets();
-            this.Translate_Packet();
         end
         
         function this = Segment_Packets(this)
@@ -135,149 +137,149 @@ classdef RTDE < handle
                     packet.text = '';
                 end
 
-                % Append Packet
-                this.robot_packets{length(this.robot_packets)+1} = packet;
                 
                 % Remove Packet from Stack
                 input(1:packet.size, :) = [];
                 this.buffer_stack(1:packet.size) = [];
+                
+                % Append Packet
+                this.robot_packets{length(this.robot_packets)+1} = this.Translate_Packet(packet);
+                
+                
             end
 
         end
         
-        function translated = Translate_Packet(packet)
+        function packet = Translate_Packet(this,packet)
             
-            for i = 1:length(this.robot_packets)
-            
-                packet = this.robot_packets{i};
-                packet.info = '';
-                
-                if isempty(packet.info)
-                    
-                    data = packet.data;
+            packet.info = '';
 
-                    switch packet.type
-                        case 'V' % Request Protocol Version
-                            % data : accepted (uint8)
-                            % accepted = 1 (success) or 0 (failed)
-                            
-                            if size(data,1)~=1
-                                info = NaN;
-                                text = 'Data Error: Incorrect Format.';
-                            else
-                            
-                                accepted = bin2dec(data);
+            if isempty(packet.info)
 
-                                if accepted == 1
-                                    info = 1;
-                                    text = 'Protocol Version sucessfully set';
-                                elseif accepted == 0
-                                    info = 0;
-                                    text = 'Protocol Version not set';
-                                end 
-                            end
+                data = packet.data;
 
+                switch packet.type
+                    case 'V' % Request Protocol Version
+                        % data : accepted (uint8)
+                        % accepted = 1 (success) or 0 (failed)
 
-                        case 'v' % Get URControl Version
-                            if size(data,1)~=16
-                                info = [NaN, NaN, NaN, NaN];
-                                text = 'Data Error: Incorrect Format.';
-                            else
-                            
-                                % data : major (uin32), minor (uint32),
-                                % bugfix (uint32), build (uint32)
-                                major = bin2dec(reshape(data(1:4,:)',1,[]));
-                                minor = bin2dec(reshape(data(5:8,:)',1,[]));
-                                bugfix = bin2dec(reshape(data(9:12,:)',1,[]));
-                                build = bin2dec(reshape(data(13:16,:)',1,[]));
+                        if size(data,1)~=1
+                            info = NaN;
+                            text = 'Data Error: Incorrect Format.';
+                        else
 
-                                info = [major, minor, bugfix, build];
-                                text = sprintf("Major.Minor.Bugfix.Build : %d.%d.%d.%d", ...
-                                    major, minor, bugfix, build);
-                            end
-
-                        case 'M' % Text Message
-                            % message type (uint8), message (char array)
-                            message_type = data(1,:);
-                            message = native2unicode(bin2dec(data(2:end,:)))';
-                            
-                            switch message_type
-                                case 0
-                                    warning_level = 'Exception';
-                                case 1
-                                    warning_level = 'Error';
-                                case 2
-                                    warning_level = 'Warning';
-                                case 3
-                                    warning_level = 'Info';
-                                otherwise
-                                    warning_level = '?';
-                            end
-                            
-                            info = message_type;
-                            text = sprintf("%s:\t%s",warning_level,message);
-
-                        case 'U' % Data Package
-                            
-                            text = sprintf("Recieved %d Bytes",size(data,1));
-
-                            info = Convert_Output(this, data);
-                            
-                            this.log{length(this.log)+1} = info;
-                            this.latest = info;
-                            
-                        case 'O' % Control Package Setup Outputs
-                            % data : variable types (char string)
-                            text = native2unicode(bin2dec(data)');
-                            info = split(text, ',');
-                            this.output_format = info;
-                            
-                            
-                            text = sprintf("Output Format: %s",text);
-
-                        case 'I' % Control Package Setup Inputs
-                            
-                            recipe = bin2dec(data(1,:));
-                            
-                            text = sprintf("Recipe %i: %s",recipe,native2unicode(bin2dec(data(2:end,:))'));
-                            
-                            info = {recipe,split(text, ',')};
-                            this.input_format = info{2};
-                            this.recipe_id = recipe;
-                            
-                            text = sprintf("Input Format: %s",text);
-                            
-                        case 'S' % Control Package Start
-                            % data : accepted (uint8) 1 or 0
                             accepted = bin2dec(data);
 
                             if accepted == 1
                                 info = 1;
-                                text = 'Start Success!';
+                                text = 'Protocol Version sucessfully set';
                             elseif accepted == 0
                                 info = 0;
-                                text = 'Start Failure!';
+                                text = 'Protocol Version not set';
                             end 
+                        end
 
-                        case 'P' % Control Package Pause
-                            % data : accepted (uint8) 1 or 0
-                            accepted = bin2dec(data);
 
-                            if accepted == 1
-                                info = 1;
-                                text = 'Pause Success!';
-                            elseif accepted == 0
-                                info = 0;
-                                text = 'Pause Failure!';
-                            end 
+                    case 'v' % Get URControl Version
+                        if size(data,1)~=16
+                            info = [NaN, NaN, NaN, NaN];
+                            text = 'Data Error: Incorrect Format.';
+                        else
 
-                        otherwise
-                              info = '';
-                              text = '';
-                    end
-                    this.robot_packets{i}.info = info;
-                    this.robot_packets{i}.text = text;
+                            % data : major (uin32), minor (uint32),
+                            % bugfix (uint32), build (uint32)
+                            major = bin2dec(reshape(data(1:4,:)',1,[]));
+                            minor = bin2dec(reshape(data(5:8,:)',1,[]));
+                            bugfix = bin2dec(reshape(data(9:12,:)',1,[]));
+                            build = bin2dec(reshape(data(13:16,:)',1,[]));
+
+                            info = [major, minor, bugfix, build];
+                            text = sprintf("Major.Minor.Bugfix.Build : %d.%d.%d.%d", ...
+                                major, minor, bugfix, build);
+                        end
+
+                    case 'M' % Text Message
+                        % message type (uint8), message (char array)
+                        message_type = data(1,:);
+                        message = native2unicode(bin2dec(data(2:end,:)))';
+
+                        switch message_type
+                            case 0
+                                warning_level = 'Exception';
+                            case 1
+                                warning_level = 'Error';
+                            case 2
+                                warning_level = 'Warning';
+                            case 3
+                                warning_level = 'Info';
+                            otherwise
+                                warning_level = '?';
+                        end
+
+                        info = message_type;
+                        text = sprintf("%s:\t%s",warning_level,message);
+
+                    case 'U' % Data Package
+
+                        text = sprintf("Recieved %d Bytes",size(data,1));
+
+                        info = Convert_Output(this, data);
+
+                        this.log{length(this.log)+1} = info;
+                        
+                        info{1} = seconds(info{1});
+                        
+                        this.latest = info;
+
+                    case 'O' % Control Package Setup Outputs
+                        % data : variable types (char string)
+                        text = native2unicode(bin2dec(data)');
+                        info = split(text, ',');
+                        this.output_format = info;
+
+
+                        text = sprintf("Output Format: %s",text);
+
+                    case 'I' % Control Package Setup Inputs
+
+                        recipe = bin2dec(data(1,:));
+
+                        text = sprintf("Recipe %i: %s",recipe,native2unicode(bin2dec(data(2:end,:))'));
+
+                        info = {recipe,split(native2unicode(bin2dec(data(2:end,:))'), ',')};
+
+                        text = sprintf("Input Format: %s",text);
+
+                    case 'S' % Control Package Start
+                        % data : accepted (uint8) 1 or 0
+                        accepted = bin2dec(data);
+
+                        if accepted == 1
+                            info = 1;
+                            text = 'Start Success!';
+                        elseif accepted == 0
+                            info = 0;
+                            text = 'Start Failure!';
+                        end 
+
+                    case 'P' % Control Package Pause
+                        % data : accepted (uint8) 1 or 0
+                        accepted = bin2dec(data);
+
+                        if accepted == 1
+                            info = 1;
+                            text = 'Pause Success!';
+                        elseif accepted == 0
+                            info = 0;
+                            text = 'Pause Failure!';
+                        end 
+
+                    otherwise
+                          info = '';
+                          text = '';
                 end
+                packet.info = info;
+                packet.text = text;
             end
             
         end
@@ -380,6 +382,7 @@ classdef RTDE < handle
         
         function Start(this)
             this.Send_Command('S', '');
+            this.log = [];
         end
         
         function Pause(this)
@@ -415,10 +418,21 @@ classdef RTDE < handle
             this.Collect();
             text = this.robot_packets{end}.text;
             info = this.robot_packets{end}.info;
+            this.latest = cell(1,length(split(outputs, ',')));
         end
         
         function [text, info] = Set_Inputs(this,inputs)
-            % Configure Outputs
+            
+            % Check if inputs are identical to this.inputs
+            if strcmp(this.inputs,inputs)
+                text = 'Format already in use';
+                info = this.input_format;
+                return
+            else
+                this.inputs = 
+            end
+            
+            % Configure Inputs
             this.Send_Command('I', inputs);
             while true
                 try
@@ -426,10 +440,22 @@ classdef RTDE < handle
                     this.Collect();
                     text = this.robot_packets{end}.text;
                     info = this.robot_packets{end}.info;
+                    
+                    this.input_format = info{2};
+                    this.recipe_id = info{1};
                     return
                 catch
                 end
             end
+        end
+        
+        function Flush(this)
+           
+            while this.tcp.BytesAvailable>0
+                read(this.tcp, this.tcp.BytesAvailable);
+            end
+            this.latest = cell(length(this.output_format),1);
+            
         end
         
         function this = Send_Command(this, command, payload)
