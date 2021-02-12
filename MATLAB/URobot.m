@@ -182,69 +182,73 @@ classdef URobot < handle
                     blend_radius = x(4);
                 end
             end  
+            parameters = [double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)];
             
+            % Convert Joints to send-ready packets
+            stack_len = size(joints,2);
+            stack = zeros(48,stack_len);
             
-            joints = joints';
-            joints_bin = ones(1, length(joints)*8); 
-            for i = 1:length(joints)
-                
-                buffer = bin2uint8_array(double2bin(joints(i)));
-                joints_bin( (i*8)-7: i*8) = buffer;
-                
+            for i = 1:stack_len
+                stack(:,i) = vector6d2uint8(joints(:,i));
             end
+            last_pos = stack(:,end);
             
+            % Clear io stream
             this.rtde.Flush();
             
             this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd')
             
-            this.rtde.Set_Inputs('input_int_register_0,input_int_register_1,input_double_register_0,input_double_register_1,input_double_register_2,input_double_register_3,input_double_register_4,input_double_register_5,input_double_register_6,input_double_register_7,input_double_register_8,input_double_register_9')
+            % Set Inputs
+            y = '';
+            for i = 0:1
+                y = strjoin({y,sprintf('input_int_register_%i',i)},',');
+            end
+            for i = 0:9
+                y = strjoin({y,sprintf('input_double_register_%i',i)},',');
+            end
+            y = y(2:end);
+            this.rtde.Set_Inputs(y)
             
-            % Execute Move Program 
+            % Execute Remote Move Program 
             t = tcpclient(this.ip,30002);
             directory = "/home/wolff/AsteroidLab/AsteroidLab/MATLAB";
             command = fileread(directory+"/Program_Control_MoveJ.script");
             write(t, unicode2native(command,'US-ASCII'));
             clear t;
             
+            
             live = 1;
             watchdog = 1;
             
             this.rtde.Start();
-            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
-                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
+            
             
             
             while true
                 watchdog = uint8(watchdog+1);
                 
-                %verbose
-                if false
-                    disp(this.rtde.latest{1});
-                    disp(this.rtde.latest{2});
-
-                    disp('Actual (Pos, Vel)');
-                    disp([this.rtde.latest{3},this.rtde.latest{4}]);
-
-                    disp('Target (Pos, Vel, Acc)');
-                    disp([this.rtde.latest{5},this.rtde.latest{6},this.rtde.latest{7}]);
-                end
-                
                 if this.rtde.latest{2} == 1
-                   disp("Move Ended") 
-                   live = 0;
                    
-                   this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
-                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
-                   this.rtde.Pause();
-                   break
+                   disp('Next Move');
+                   stack(:,1) = [];
+                   
+                   if isempty(stack)
+                       break
+                   end
                 end
                 
-                this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), joints_bin, ...
-                       double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
+                this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
                 pause(0.01);
                 this.rtde.Collect();
-                pause(0.01);
             end
+            
+            % End Remote Program
+            disp("Move Ended") 
+            live = 0;
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), last_pos', parameters]);
+            this.rtde.Pause();
+
             
             this.latest_log = this.rtde.log;
         end

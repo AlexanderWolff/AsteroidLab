@@ -15,6 +15,7 @@ def Program_Template():
    global setp = [0,0,0,0,0,0]
    global move = [0,0,0,0]
    
+   
    thread Update():
       setp = get_actual_joint_positions()
       
