@@ -92,7 +92,7 @@ y = (y/max(y))*scale;
 %figure
 %plot(x,y,'-',x,y, 'x')
 
-tcp = UR3_sim.fkine( start_pos );
+tcp, all = UR3_sim.fkine( start_pos );
 s_tcp_t = tcp.t';
 s_tcp_r = [tcp.n, tcp.o, tcp.a];
 s_tcp_a = rotationMatrixToVector(s_tcp_r');
@@ -120,6 +120,7 @@ disp('Ground Truth, Reconstructed, Error')
 % q = p560.ikine6s(T); 
 % clf
 % p560.plot(q)
+
 
 
 
