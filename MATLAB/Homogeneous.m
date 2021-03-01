@@ -30,6 +30,44 @@ classdef Homogeneous < handle
             this.setR(R);
         end
         
+        function this = fromXYZ(xyz)
+            
+            R = RMatrix.fromXYZ(xyz);
+            this = Homogeneous.fromR(R.R);
+            
+        end
+        
+        function T = fromDH(DH_param)
+           % From Denavit-Hartenberg (back comparison)
+           % [theta, a(-1), d, alpha(-1),]
+           
+           theta = DH_param(1);
+           a = DH_param(2);
+           d = DH_param(3);
+           alpha = DH_param(4);
+           
+            % Rotate in X by alpha ( orientation along x between joints )
+            Ra = Homogeneous.fromXYZ([alpha,0,0]);
+
+            % Translate in X by a  (dist along x between joints)
+            Ta = Homogeneous.fromT([a,0,0]);
+
+            % Rotate in Z by theta ( angle between this link and next link )
+            Rb = Homogeneous.fromXYZ([0,0,theta]);
+
+            % Translate in Z by d ( dist along z between joints )
+            Tb = Homogeneous.fromT([0,0,d]);
+
+            % DH Transform
+            H = Homogeneous.Empty;
+            
+            H = H.transform(Ra);
+            H = H.transform(Ta);
+            H = H.transform(Rb);
+            H = H.transform(Tb);
+            T = H;
+        end
+        
         function this = fromDH_B(DH_param)
            % From Denavit-Hartenberg (back comparison)
            % [theta, a(-1), d, alpha(-1),]
@@ -39,17 +77,20 @@ classdef Homogeneous < handle
            d = DH_param(3);
            alpha = DH_param(4);
            
-           a = abs(a);
+           %a = abs(a);
            
            ct = cos(theta);
            st = sin(theta);
            ca = cos(alpha);
            sa = sin(alpha);
            
+           
+           
            T = [ct,      -st,   0,     a;...
                 st*ca, ct*ca, -sa, -sa*d;...
                 st*sa, ct*sa,  ca,  ca*d;...
                     0,     0,   0,     1];
+           
                 
            this = Homogeneous(T);
         end
@@ -146,9 +187,13 @@ classdef Homogeneous < handle
             new = Homogeneous(other.H*this.H);
         end
         
+        function xyz = toXYZ(this)
+           xyz = RMatrix(this.R).toXYZ; 
+        end
+        
         function plot(this)
             
-            scale = 0.1;
+            scale = 0.05;
             
             O = Homogeneous.Empty;
             X = Homogeneous.fromT([scale,0,0]);
@@ -176,7 +221,7 @@ classdef Homogeneous < handle
             x3 = p(:,1);
             y3 = p(:,2);
             z3 = p(:,3);
-            plot3(x1,y1,z1,'-b',x2,y2,z2,'-g',x3,y3,z3,'-r');
+            plot3(x1,y1,z1,'-r',x2,y2,z2,'-g',x3,y3,z3,'-b');
             
             xlim([-1,1]);
             axis equal;
@@ -184,7 +229,7 @@ classdef Homogeneous < handle
         
         function plotk(this)
             
-            scale = 0.1;
+            scale = 0.05;
             
             O = Homogeneous.Empty;
             X = Homogeneous.fromT([scale,0,0]);

@@ -103,6 +103,53 @@ classdef RMatrix < handle
             this = RMatrix(R);
         end
         
+        function this = fromAngleAxisMag(in)
+           
+            % Convert to Axis Angle 
+            x = in;
+            angle = sqrt(x(1)^2+x(2)^2+x(3)^2);
+            axis = in/angle;
+            
+            % Convert to Quaternion
+            qw = cos(angle/2);
+            qx = axis(1)*sin(angle/2);
+            qy = axis(2)*sin(angle/2);
+            qz = axis(3)*sin(angle/2);
+            
+            % Convert to Rotation Matrix
+            this = RMatrix.fromQuaternion([qw,qx,qy,qz]);
+            
+        end
+        
+        function this = fromQuaternion(quat)
+           % From Quaternion (1x4 Vector)
+           % Source : https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/jay.htm
+            
+            
+            q.w = quat(1);
+            q.x = quat(2);
+            q.y = quat(3);
+            q.z = quat(4);
+            
+            M1 = [ q.w, q.z,-q.y, q.x;...
+                  -q.z, q.w, q.x, q.y;...
+                   q.y,-q.x, q.w, q.z;...
+                  -q.x,-q.y,-q.z, q.w];
+              
+            M2 = [ q.w, q.z,-q.y,-q.x;...
+                  -q.z, q.w, q.x,-q.y;...
+                   q.y,-q.x, q.w,-q.z;...
+                   q.x, q.y, q.z, q.w];
+            
+            M = M1*M2;
+            
+            M = M(1:3,1:3);
+            M = M';
+               
+            this = RMatrix(M);
+        end
+        
+        
     end
     
     methods 

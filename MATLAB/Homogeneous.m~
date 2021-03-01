@@ -21,13 +21,45 @@ classdef Homogeneous < handle
         function this = fromT(T)
             % From a Translation (Vector 1x3)
             this = Homogeneous.Empty;
-            this.setT(T)
+            this.setT(T);
         end
         
         function this = fromR(R)
             % From a Rotation (Matrix 3x3)
             this = Homogeneous.Empty;
-            this.setR(R)
+            this.setR(R);
+        end
+        
+        function this = fromXYZ(xyz)
+            
+            R = RMatrix.fromXYZ(xyz);
+            this = Homogeneous.fromR(R.R);
+            
+        end
+        
+        function T = fromDH(DH_param)
+           % From Denavit-Hartenberg (back comparison)
+           % [theta, a(-1), d, alpha(-1),]
+           
+           theta = DH_param(1);
+           a = DH_param(2);
+           d = DH_param(3);
+           alpha = DH_param(4);
+           
+            % Rotate in X by alpha ( orientation along x between joints )
+            Ra = Homogeneous.fromXYZ([alpha,0,0]);
+
+            % Translate in X by a  (dist along x between joints)
+            Ta = Homogeneous.fromT([a,0,0]);
+
+            % Rotate in Z by theta ( angle between this link and next link )
+            Rb = Homogeneous.fromXYZ([0,0,theta]);
+
+            % Translate in Z by d ( dist along z between joints )
+            Tb = Homogeneous.fromT([0,0,d]);
+
+            % DH Transform
+            T = Ra.dot(Ta.dot(Rb.dot(Tb)));
         end
         
         function this = fromDH_B(DH_param)
@@ -39,7 +71,7 @@ classdef Homogeneous < handle
            d = DH_param(3);
            alpha = DH_param(4);
            
-           a = abs(a);
+           %a = abs(a);
            
            ct = cos(theta);
            st = sin(theta);
@@ -50,6 +82,7 @@ classdef Homogeneous < handle
                 st*ca, ct*ca, -sa, -sa*d;...
                 st*sa, ct*sa,  ca,  ca*d;...
                     0,     0,   0,     1];
+           
                 
            this = Homogeneous(T);
         end
@@ -63,7 +96,7 @@ classdef Homogeneous < handle
            d = DH_param(3);
            alpha = DH_param(4);
            
-           a = abs(a);
+           %a = abs(a);
            
            ct = cos(theta);
            st = sin(theta);
@@ -94,7 +127,7 @@ classdef Homogeneous < handle
            % Transform
            T_ad = T_ab.H*T_bc.H*T_cd.H;
            
-           product = T_ad;
+           product = Homogeneous(T_ad);
         end
         
     end
@@ -110,8 +143,9 @@ classdef Homogeneous < handle
         function inverse = inv(this)
             % Transform Inverse
             R_ = this.R';
-            T_ = -(this.R')*this.T;
+            T_ = -1.*(this.R')*this.T;
             inverse = [[R_;0,0,0],[T_;1]];
+            inverse = Homogeneous(inverse);
         end
         
         function product = p(this,point)
@@ -138,21 +172,92 @@ classdef Homogeneous < handle
             new = Homogeneous(this.H*other.H);
         end
         
+        function new = transform(this,other)
+            % Transform this Frame by Homogeneous Transform
+            
+            % TODO: optimize by using .R and .T
+            new = Homogeneous(other.H*this.H);
+        end
+        
+        function xyz = toXYZ(this)
+           xyz = RMatrix(this.R).toXYZ; 
+        end
+        
         function plot(this)
             
-            O = Homogeneous.Empty;
+            scale = 0.05;
             
-            X = Homogeneous.fromT([1,0,0]);
-            Y = Homogeneous.fromT([0,1,0]);
-            Z = Homogeneous.fromT([0,0,1]);
+            O = Homogeneous.Empty;
+            X = Homogeneous.fromT([scale,0,0]);
+            Y = Homogeneous.fromT([0,scale,0]);
+            Z = Homogeneous.fromT([0,0,scale]);
             
             %Transform
-            X = X.dot(this);
-            Y = X.dot(this);
-            Z = X.dot(this);
-            
-            
+            O = O.transform(this);
+            X = X.transform(this);
+            Y = Y.transform(this);
+            Z = Z.transform(this);
+
             %Plot
+            p = [O.T, X.T]';
+            x1 = p(:,1);
+            y1 = p(:,2);
+            z1 = p(:,3);
+            
+            p = [O.T, Y.T]';
+            x2 = p(:,1);
+            y2 = p(:,2);
+            z2 = p(:,3);
+            
+            p = [O.T, Z.T]';
+            x3 = p(:,1);
+            y3 = p(:,2);
+            z3 = p(:,3);
+            plot3(x1,y1,z1,'-r',x2,y2,z2,'-g',x3,y3,z3,'-b');
+            
+            xlim([-1,1]);
+            axis equal;
+        end
+        
+        function plotk(this)
+            
+            scale = 0.05;
+            
+            O = Homogeneous.Empty;
+            X = Homogeneous.fromT([scale,0,0]);
+            Y = Homogeneous.fromT([0,scale,0]);
+            Z = Homogeneous.fromT([0,0,scale]);
+            
+            %Transform
+            O = O.transform(this);
+            X = X.transform(this);
+            Y = Y.transform(this);
+            Z = Z.transform(this);
+
+            %Plot
+            p = [O.T, X.T]';
+            x1 = p(:,1);
+            y1 = p(:,2);
+            z1 = p(:,3);
+            
+            p = [O.T, Y.T]';
+            x2 = p(:,1);
+            y2 = p(:,2);
+            z2 = p(:,3);
+            
+            p = [O.T, Z.T]';
+            x3 = p(:,1);
+            y3 = p(:,2);
+            z3 = p(:,3);
+            plot3(x1,y1,z1,'-k',x2,y2,z2,'-k',x3,y3,z3,'-k');
+            
+            xlim([-1,1]);
+            axis equal;
+        end
+        
+        function plotL(this,label)
+           this.plot;
+           text(this.T(1),this.T(2),this.T(3),label);
         end
         
     end

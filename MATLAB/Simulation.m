@@ -4,8 +4,7 @@ classdef Simulation < handle
        robot_class
        parameters
        
-       frames
-       transforms
+       transform
     end
     
     properties (Constant, GetAccess='private')
@@ -63,43 +62,26 @@ classdef Simulation < handle
                     disp("Robot Parameters not Configured");
             end
             
-            this.Generate_Frames([0,0,0,0,0,0]);
+            this.transform.base_offset = Homogeneous.Empty;
+            this.transform.tool_offset = Homogeneous.Empty;
+            this.transform.chain = cell(7,1);
+            this.transform.local = cell(7,1);
             
+            this.Transform([0,0,0,0,0,0]);
         end
         
-        function Generate_Frames(this, joint_angles)
-            
-            frame = cell(2+length(joint_angles),1);
-            
-            % Base Frame
-            params = [0,0,0,0];
-            frame{1} = Homogeneous.fromDH_B(params);
-            
-            % Joint Frames
-            for i = 1:length(joint_angles)
-                params = [joint_angles(i),this.parameters.kinematics(i,2:4)];
-                frame{1+i} = Homogeneous.fromDH_B(params);
-            end
-            
-            % End Frame
-            params = [0,this.parameters.kinematics(end,2:4)];
-            frame{1+length(joint_angles)+1} = Homogeneous.fromDH_B(params);
-            this.frames = frame;
+        function Set_Base_Offset(this,offset)
+           this.transform.base_offset = offset; 
         end
         
-        function trans(this, joint_angles)
-            joint_angles = deg2rad(joint_angles);
-            
-            
-            %% Initial Frame : Base
-            
-            % F0 from F0
-            F0_F0 = Homogeneous.Empty;
-            
-            
+        function Set_Tool_Offset(this,offset)
+           this.transform.tool_offset = offset; 
+        end
+        
+        function Frames = Transform(this, joint_angles)
             %% First Transform : Base -> First Joint (ShoulderA)
             p = [0,0,0,0];
-            T_F0tF1 = Homogeneous.fromDH_B(p);
+            T_F0tF1 = Homogeneous.fromDH_F(p);
             
             R1 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(1)]).R);
             
@@ -113,7 +95,7 @@ classdef Simulation < handle
             
             %% Second Transform : First Joint -> Second Joint (ShoulderB)
             p = [0,this.parameters.kinematics(1,2:4)];
-            T_F2tF1 = Homogeneous.fromDH_B(p);
+            T_F2tF1 = Homogeneous.fromDH_F(p);
             
             R2 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(2)]).R);
             
@@ -129,10 +111,9 @@ classdef Simulation < handle
             
             %% Third Transform : Second Joint -> Third Joint (Elbow)
             p = [0,this.parameters.kinematics(2,2:4)];
-            T_F3tF2 = Homogeneous.fromDH_B(p);
+            T_F3tF2 = Homogeneous.fromDH_F(p);
             
             R3 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(3)]).R);
-            
             
             % F3 from F3
             F3_F3 = Homogeneous.Empty;
@@ -144,11 +125,9 @@ classdef Simulation < handle
             % F3 from F0
             F3_F0 = F3_F2.transform(F2_F0);
 
-
-
             %% Fourth Transform : Third Joint -> Fourth Joint (WristA)
             p = [0,this.parameters.kinematics(3,2:4)];
-            T_F4tF3 = Homogeneous.fromDH_B(p);
+            T_F4tF3 = Homogeneous.fromDH_F(p);
             
             R4 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(4)]).R);
             
@@ -164,7 +143,7 @@ classdef Simulation < handle
             
             %% Fifth Transform : Fourth Joint -> Fifth Joint (WristB)
             p = [0,this.parameters.kinematics(4,2:4)];
-            T_F5tF4 = Homogeneous.fromDH_B(p);
+            T_F5tF4 = Homogeneous.fromDH_F(p);
             
             R5 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(5)]).R);
             
@@ -178,9 +157,9 @@ classdef Simulation < handle
             % F5 from F0
             F5_F0 = F5_F4.transform(F4_F0);
             
-            % Sixth Transform : Fifth Joint -> Sixth Joint (WristC)
+            %% Sixth Transform : Fifth Joint -> Sixth Joint (WristC)
             p = [0,this.parameters.kinematics(5,2:4)];
-            T_F6tF5 = Homogeneous.fromDH_B(p);
+            T_F6tF5 = Homogeneous.fromDH_F(p);
             
             R6 = Homogeneous.fromR(RMatrix.fromXYZ([0,0,joint_angles(6)]).R);
             
@@ -196,7 +175,7 @@ classdef Simulation < handle
             
             %% Seventh Transform : Sixth Joint -> Tooltip
             p = [0,this.parameters.kinematics(6,2:4)];
-            T_F7tF6 = Homogeneous.fromDH_B(p);
+            T_F7tF6 = Homogeneous.fromDH_F(p);
             
             % F7 from F7
             F7_F7 = Homogeneous.Empty;
@@ -207,25 +186,67 @@ classdef Simulation < handle
             % F7 from F0
             F7_F0 = F7_F6.transform(F6_F0);
             
-            %pose = [F6.T;RMatrix(F6.R).toXYZ'];
-            %%
-            F0 = F0_F0;
-            F1 = F1_F0;
-            F2 = F2_F0;
-            F3 = F3_F0;
-            F4 = F4_F0;
-            F5 = F5_F0;
-            F6 = F6_F0;
-            F7 = F7_F0;
+            %% Update Internal Information
+            this.transform.chain{1} = F1_F0;
+            this.transform.chain{2} = F2_F1;
+            this.transform.chain{3} = F3_F2;
+            this.transform.chain{4} = F4_F3;
+            this.transform.chain{5} = F5_F4;
+            this.transform.chain{6} = F6_F5;
+            this.transform.chain{7} = F7_F6; 
             
-            figure('name',sprintf("%0.1f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f",...
-                rad2deg(joint_angles(1)),...
-                rad2deg(joint_angles(2)),...
-                rad2deg(joint_angles(3)),...
-                rad2deg(joint_angles(4)),...
-                rad2deg(joint_angles(5)),...
-                rad2deg(joint_angles(6))));
-            hold on
+            this.transform.local{1} = F1_F0;
+            this.transform.local{2} = F2_F0;
+            this.transform.local{3} = F3_F0;
+            this.transform.local{4} = F4_F0;
+            this.transform.local{5} = F5_F0;
+            this.transform.local{6} = F6_F0;
+            this.transform.local{7} = F7_F0;
+            
+            Frames = cell(7,1);
+            Frames{1} = F1_F0;
+            Frames{2} = F2_F0;
+            Frames{3} = F3_F0;
+            Frames{4} = F4_F0;
+            Frames{5} = F5_F0;
+            Frames{6} = F6_F0;
+            Frames{7} = F7_F0;
+        end
+        
+        function gDisplay(this)
+            % Global Display (+Base Offset)
+            
+            F1_F0 = this.transform.chain{1};
+            F2_F1 = this.transform.chain{2};
+            F3_F2 = this.transform.chain{3};
+            F4_F3 = this.transform.chain{4};
+            F5_F4 = this.transform.chain{5};
+            F6_F5 = this.transform.chain{6};
+            F7_F6 = this.transform.chain{7};
+            
+            F0_Foffset = this.transform.base_offset;
+            F1_Foffset = F1_F0.transform(F0_Foffset);
+            F2_Foffset = F2_F1.transform(F1_Foffset);
+            F3_Foffset = F3_F2.transform(F2_Foffset);
+            F4_Foffset = F4_F3.transform(F3_Foffset);
+            F5_Foffset = F5_F4.transform(F4_Foffset);
+            F6_Foffset = F6_F5.transform(F5_Foffset);
+            F7_Foffset = F7_F6.transform(F6_Foffset);
+            
+            Ftool_F7 = this.transform.tool_offset;
+            Ftool_Foffset = Ftool_F7.transform(F7_Foffset);
+            
+            F0 = F0_Foffset;
+            F1 = F1_Foffset;
+            F2 = F2_Foffset;
+            F3 = F3_Foffset;
+            F4 = F4_Foffset;
+            F5 = F5_Foffset;
+            F6 = F6_Foffset;
+            F7 = F7_Foffset;
+            
+            Ftool = Ftool_Foffset;
+            
             F0.plot
             text(F0.T(1),F0.T(2),F0.T(3),'    B')
             
@@ -248,27 +269,97 @@ classdef Simulation < handle
             text(F6.T(1),F6.T(2),F6.T(3),'J6')
             
             F7.plot
-            text(F7.T(1),F7.T(2),F7.T(3),'Tool')
+            text(F7.T(1),F7.T(2),F7.T(3),'Tip')
             
-            xlim([-1,1]);
+            Ftool.plot
+            text(Ftool.T(1),Ftool.T(2),Ftool.T(3),'Tool')
+            
+            xlim([-0.8,0.8]);
             axis equal 
-           
-            
         end
         
+        function lDisplay(this)
+            % Local Display
+            
+            F1_F0 = this.transform.local{1};
+            F2_F0 = this.transform.local{2};
+            F3_F0 = this.transform.local{3};
+            F4_F0 = this.transform.local{4};
+            F5_F0 = this.transform.local{5};
+            F6_F0 = this.transform.local{6};
+            F7_F0 = this.transform.local{7};
+            
+            Ftool_F7 = this.transform.tool_offset;
+            Ftool_F0 = Ftool_F7.transform(F7_F0);
+            
+            F0 = F1_F0;
+            F1 = F1_F0;
+            F2 = F2_F0;
+            F3 = F3_F0;
+            F4 = F4_F0;
+            F5 = F5_F0;
+            F6 = F6_F0;
+            F7 = F7_F0;
+            
+            Ftool = Ftool_F0;
+            
+            F0.plot
+            text(F0.T(1),F0.T(2),F0.T(3),'    B')
+            
+            F1.plot
+            text(F1.T(1),F1.T(2),F1.T(3),'J1')
+            
+            F2.plot
+            text(F2.T(1),F2.T(2),F2.T(3),'J2')
+            
+            F3.plot
+            text(F3.T(1),F3.T(2),F3.T(3),'J3')
+            
+            F4.plot
+            text(F4.T(1),F4.T(2),F4.T(3),'J4')
+            
+            F5.plot
+            text(F5.T(1),F5.T(2),F5.T(3),'J5')
+            
+            F6.plot
+            text(F6.T(1),F6.T(2),F6.T(3),'J6')
+            
+            F7.plot
+            text(F7.T(1),F7.T(2),F7.T(3),'Tip')
+            
+            Ftool.plot
+            text(Ftool.T(1),Ftool.T(2),Ftool.T(3),'Tool')
+            
+            xlim([-0.8,0.8]);
+            axis equal 
+        end
         
-        function pose = ForwardKinematics(this)
+        function ForwardKinematics(this, joint_angles)
            
-            % Start from base frame
-            frame = this.frames{1};
+            joint_angles = deg2rad(joint_angles);
             
-            % Go through each frame transformation
-            for i = 2:length(this.frames)
-                frame = frame.dot(this.frames{i});
-            end
+            % Calculate Forward Transform
+            this.Transform(joint_angles);
+        end
+        
+        function fK(this, joint_angles)
+           
+            joint_angles = deg2rad(joint_angles);
             
-            pose = frame;
-            [frame.T;RMatrix(frame.R).toXYZ']
+            % Calculate Forward Transform
+            this.Transform(joint_angles);
+            
+            % Display in Local Frame
+            figure('name',sprintf("%0.1f,%0.2f,%0.2f,%0.2f,%0.2f,%0.2f",...
+                rad2deg(joint_angles(1)),...
+                rad2deg(joint_angles(2)),...
+                rad2deg(joint_angles(3)),...
+                rad2deg(joint_angles(4)),...
+                rad2deg(joint_angles(5)),...
+                rad2deg(joint_angles(6))));
+            hold on
+            this.lDisplay;
+            
             
         end
         

@@ -92,14 +92,26 @@ y = (y/max(y))*scale;
 %figure
 %plot(x,y,'-',x,y, 'x')
 
-tcp, all = UR3_sim.fkine( start_pos );
+tcp = UR3_sim.fkine( start_pos );
 s_tcp_t = tcp.t';
 s_tcp_r = [tcp.n, tcp.o, tcp.a];
 s_tcp_a = rotationMatrixToVector(s_tcp_r');
 s_tcp = [s_tcp_t, s_tcp_a]';
 
-disp('Ground Truth, Reconstructed, Error')
-[start_tcp, s_tcp, abs(start_tcp-s_tcp)]
+%disp('Ground Truth, Reconstructed, Error')
+%[start_tcp, s_tcp, abs(start_tcp-s_tcp)]
+
+% Orientation Error
+actual_xyz = RMatrix.fromAngleAxisMag(start_tcp(4:6)).toXYZ;
+sim_xyz = s_tcp_a;
+error = sim_xyz-actual_xyz;
+orientation_actual_sim_error_rad = [actual_xyz;sim_xyz;error]
+
+% Position Error
+actual_xyz = start_tcp(1:3)';
+sim_xyz = s_tcp_t;
+error = sim_xyz-actual_xyz;
+position_actual_sim_error_rad = [actual_xyz;sim_xyz;error]
 
 % t = [0:.056:2]; 	% generate a time vector
 % q = jtraj(qz, qr, t); % compute the joint coordinate trajectory
