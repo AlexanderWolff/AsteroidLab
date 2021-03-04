@@ -109,109 +109,50 @@
 % actual.plotL('actual');
 
 % Distances in m
-hypo = (1580-125/2-146/2)e-3;%1480.4e-3;
-adja = 150.15e-2;%(1343+7.3)*1e-3;%;
-oppo = 46.15e-2;%(668-87.5)*1e-3;%
+% hypo = (1580-125/2-146/2)*1e-3;%1480.4e-3;
+% adja = (1343+7.3)*1e-3;%150.15e-2;%
+% oppo = (668-87.5)*1e-3;%46.15e-2;%
+% 
+% theta = zeros(3,1);
+% theta(1) = asin(oppo/hypo);
+% theta(2) = acos(adja/hypo);
+% theta(3) = atan2(oppo,adja);
+% rad2deg(theta)
+% 
+% h = zeros(3,1);
+% a = zeros(3,1);
+% o = zeros(3,1);
+% 
+% h(1) = sqrt( adja^2 + oppo^2 )
 
-theta = zeros(3,1);
-theta(1) = asin(oppo/hypo);
-theta(2) = acos(adja/hypo);
-theta(3) = atan2(oppo,adja);
-rad2deg(theta)
+sim1 = Simulation('UR3');
+sim2 = Simulation('UR5');
 
-h = zeros(3,1);
-a = zeros(3,1);
-o = zeros(3,1);
+offset = Homogeneous.fromT([-1480.4e-3,0,0]);
+offset.setR(RMatrix.fromXYZ(deg2rad([0,0,180])).R);
+sim2.Set_Base_Offset(offset);
 
-h(1) = sqrt( adja^2 + oppo^2 )
+sim1.ForwardKinematics([0,-90,0,-90,0,0])
+sim2.ForwardKinematics([0,-90,0,-90,0,0])
 
-% sim1 = Simulation('UR3');
-% sim2 = Simulation('UR5');
-% 
-% offset = Homogeneous.fromT([-1480.4e-3,0,0]);
-% offset.setR(RMatrix.fromXYZ(deg2rad([0,0,180])).R);
-% sim2.Set_Base_Offset(offset);
-% 
-% sim1.ForwardKinematics([0,-90,0,-90,0,0])
-% sim2.ForwardKinematics([0,-90,0,-90,0,0])
-% 
-% figure;
-% hold on;
-% 
-% sim1.gDisplay;
-% sim2.gDisplay;
-% 
-% xlim([-2,2]);
-% axis equal;
+figure('name', 'Robots in Physical Space');
+hold on;
 
+sim1.gDisplay;
+sim2.gDisplay;
 
+xlim([-2,2]);
+axis equal;
 
-% %% Find out distance between bases from the circumference
-% 
-% % lengths in mm
-% % Radius of first robot base
-% r1 = 125/2;
-% 
-% % Radius of second robot base
-% r2 = 146/2;
-% 
-% % Measured Circumference
-% 
-% c = 3657.5;
-% 
-% % Calculate distance between bases
-% 
-% l = sqrt( ((c-pi*(r1+r2))/2)^2 -(r1-r2)^2 ) - r1 - r2;
-% disp(l);
-% 
-% distance = 1580;
-% 
-% 
-% % Calculate Circumference (used to derive above equation)
-% 
-% arc1 = pi*r1;
-% 
-% arc2 = pi*r2;
-% 
-% segment = sqrt( ( l+r1+r2 )^2 + (r1-r2)^2 );
-% 
-% circumference = arc1+arc2+2*segment
-% 
-% 
-% %% Display Bases
-% 
-% x = linspace(-pi, pi, 1000);
-% 
-% x1 = linspace(-pi, 0, 1000);
-% 
-% x2 = linspace( 0, pi, 1000);
-% 
-% scale = r1+l+r2;
-% 
-% figure;
-% 
-% xlim( [-scale*2/3, scale*2/3] );
-% 
-% ylim( [-scale*2/3, scale*2/3] );
-% 
-% hold on;
-% 
-% plot( r1*sin(x) - l/2, r1*cos(x) );
-% 
-% plot( r2*sin(x) + l/2, r2*cos(x) );
-% 
-% 
-% % Display Circumference
-% 
-% plot( r1*sin(x1) - l/2, r1*cos(x1), 'k--' );
-% 
-% plot( r2*sin(x2) + l/2, r2*cos(x2), 'k--' );
-% 
-% plot( [-l/2, l/2],[r1,r2], 'k--' )
-% 
-% plot( [-l/2, l/2],[-r1,-r2],'k--')
-% 
-% plot( [-l/2+r1, l/2-r2], [0,0], '--')
+tool1_F0 = sim1.transform.local{7};
+tool2_local = sim2.transform.local{7};
+tool2_F0 = tool2_local.transform(offset);
+figure('name', '');
+hold on;
+tool1_F0.plotL('Asteroid');
+tool2_F0.plotL('Camera');
+xlim([-2,2]);
+axis equal;
 
 
 
