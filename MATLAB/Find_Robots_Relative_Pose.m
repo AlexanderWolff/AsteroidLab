@@ -1,9 +1,9 @@
 %% Find out Relative distance and orientation between UR3 and UR5 Robots
 % lengths in mm
 % Measure the distance from bolt A of UR3 to bolt A of UR5 - distance a
-% Measure the distance from bolt B of UR3 to bolt B of UR5 - distance b
+% Measure the distance from bolt A of UR3 to bolt B of UR5 - distance b
 % bolt A is the closest bolt to the left  of the wire cable 
-% bolt B is the closest bolt to the right of the wire cable
+% bolt B is the opposite to bolt A
 
 % Bolt Diameter
 bd = 6.6;
@@ -27,8 +27,8 @@ d2 = 149;
 UR5_r = d2/2;
 
 
-displacement = 150;
-angle = 30;
+displacement = 100;
+angle = 32.432;
 [aa, ab] = Find_Base_Distances_and_Orientation(displacement, deg2rad(angle), '');
 
 %% Mathematics Derive Distance and Angle

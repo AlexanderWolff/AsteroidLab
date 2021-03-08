@@ -31,23 +31,13 @@ function [AA, AB] = Find_Base_Distances_and_Orientation(D_, A_,p)
 
     % Angle bolt A
     bA = deg2rad(180)+A;
-
-    % Angle bolt B
-    bB = deg2rad(270)+A;
-
     UR3_A = [cos(bA)*UR3_bl+D, sin(bA)*UR3_bl];
-    UR3_B = [cos(bB)*UR3_bl+D, sin(bB)*UR3_bl];
 
     if strcmp(p, 'plot')
         plot( UR3_br*sin(x)+UR3_A(1), UR3_br*cos(x)+UR3_A(2), 'b' );
-        plot( UR3_br*sin(x)+UR3_B(1), UR3_br*cos(x)+UR3_B(2), 'r' );
     end
     
-    % Distance UR3_A to UR3_B
-    dx = abs(UR3_A(1) - UR3_B(1));
-    dy = abs(UR3_A(2) - UR3_B(2));
-    UR3_D = sqrt(dx^2 + dy^2);
-
+   
     %% UR5
     % Base Diameter
     d2 = 149;
@@ -177,10 +167,6 @@ function [AA, AB] = Find_Base_Distances_and_Orientation(D_, A_,p)
     d = sqrt( b^2 + c^2 - 2*b*c* cos( A_angles(2) ) );
     distance = d - UR5_r - UR3_r - UR3_bl;
     
-    if strcmp(p, 'plot')
-        plot([UR3_r, UR3_r+distance], [0, 0], 'o-g');
-    end
-
     % Figure out Orientation by  Sine Rule
     a = d;
     C = asin( c*sin( A_angles(2))/a );
@@ -192,7 +178,14 @@ function [AA, AB] = Find_Base_Distances_and_Orientation(D_, A_,p)
     orientation = C;
     
     if strcmp(p, 'plot')
+        plot([UR3_r, UR3_r+distance], [0, 0], 'o-g');
+        
         scale = (d1+d2+D_)*1.5;
+        
+        text( scale/3, -scale/6, 'angle: ('+string(rad2deg(orientation))+' deg) '+string(orientation)+' rad');
+        text( scale/3, -scale/4, 'distance: '+string(distance)+'mm');
+    
+        
         xlim( [-UR3_r*4/3, scale*2/3] );
         axis equal
     end
