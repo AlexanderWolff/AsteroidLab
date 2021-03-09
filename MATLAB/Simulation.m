@@ -26,7 +26,13 @@ classdef Simulation < handle
                                 0.80, [   0,     0,   0.01]; ...
                                 0.35, [   0,     0,  -0.02]};
 
-
+    % Calculated Using the findWorkspace method in this class
+    UR3_workspace = [-0.575163609153450,   0.575163609153450;...
+                     -0.575163609153450,   0.575163609153450;...
+                     -0.727063609153450   0.423263609153450;...
+                     0,   0.735696925034515]
+                            
+                            
     % UR5 Parameters
     % theta (rad), a (m), d(m), alpha (rad)
     UR5_parameters_kinematics = [0,       0, 0.089159, pi/2; ...
@@ -55,6 +61,7 @@ classdef Simulation < handle
                 case 'UR3'
                     this.parameters.kinematics = Simulation.UR3_parameters_kinematics;
                     this.parameters.dynamics = Simulation.UR3_parameters_dynamics;
+                    this.parameters.workspace = Simulation.UR3_workspace;
                 case 'UR5'
                     this.parameters.kinematics = Simulation.UR5_parameters_kinematics;
                     this.parameters.dynamics = Simulation.UR5_parameters_dynamics;
@@ -280,7 +287,6 @@ classdef Simulation < handle
         
         function lDisplay(this)
             % Local Display
-            
             F1_F0 = this.transform.local{1};
             F2_F0 = this.transform.local{2};
             F3_F0 = this.transform.local{3};
@@ -334,6 +340,64 @@ classdef Simulation < handle
             axis equal 
         end
         
+        function lDisplay_plane(this, plane)
+            % Local Display
+            
+            hold on;
+            
+            F1_F0 = this.transform.local{1};
+            F2_F0 = this.transform.local{2};
+            F3_F0 = this.transform.local{3};
+            F4_F0 = this.transform.local{4};
+            F5_F0 = this.transform.local{5};
+            F6_F0 = this.transform.local{6};
+            F7_F0 = this.transform.local{7};
+            
+            Ftool_F7 = this.transform.tool_offset;
+            Ftool_F0 = Ftool_F7.transform(F7_F0);
+            
+            F0 = F1_F0;
+            F1 = F1_F0;
+            F2 = F2_F0;
+            F3 = F3_F0;
+            F4 = F4_F0;
+            F5 = F5_F0;
+            F6 = F6_F0;
+            F7 = F7_F0;
+            
+            Ftool = Ftool_F0;
+            
+            F0.plot_plane(plane)
+            text(F0.T(1),F0.T(2),F0.T(3),'    B')
+            
+            F1.plot_plane(plane)
+            text(F1.T(1),F1.T(2),F1.T(3),'J1')
+            
+            F2.plot_plane(plane)
+            text(F2.T(1),F2.T(2),F2.T(3),'J2')
+            
+            F3.plot_plane(plane)
+            text(F3.T(1),F3.T(2),F3.T(3),'J3')
+            
+            F4.plot_plane(plane)
+            text(F4.T(1),F4.T(2),F4.T(3),'J4')
+            
+            F5.plot_plane(plane)
+            text(F5.T(1),F5.T(2),F5.T(3),'J5')
+            
+            F6.plot_plane(plane)
+            text(F6.T(1),F6.T(2),F6.T(3),'J6')
+            
+            F7.plot_plane(plane)
+            text(F7.T(1),F7.T(2),F7.T(3),'Tip')
+            
+            Ftool.plot_plane(plane)
+            text(Ftool.T(1),Ftool.T(2),Ftool.T(3),'Tool')
+            
+            xlim([-0.8,0.8]);
+            axis equal 
+        end
+        
         function ForwardKinematics(this, joint_angles)
            
             joint_angles = deg2rad(joint_angles);
@@ -359,8 +423,78 @@ classdef Simulation < handle
                 rad2deg(joint_angles(6))));
             hold on
             this.lDisplay;
-            
-            
+        end
+        
+        function [mDX, mDY, mDZ, mDXYZ] = findWorkspace(this)
+            sim = this;
+
+            angles = linspace(-180,180,9);
+
+            l = (length(angles)^6)+1;
+            DX = zeros(1,l);
+            DY = zeros(1,l);
+            DZ = zeros(1,l);
+            DXYZ = zeros(1,l);
+            i = 1;
+            checkpoint = 0.01;
+
+            for a = 1:length(angles)
+
+                for b = 1:length(angles)
+
+                    for c = 1:length(angles)
+
+                        for d = 1:length(angles)
+
+                            for e = 1:length(angles)
+
+                                for f = 1:length(angles)
+
+                                    A = angles(a);
+                                    B = angles(b);
+                                    C = angles(c);
+                                    D = angles(d);
+                                    E = angles(e);
+                                    F = angles(f);
+
+                                    sim.ForwardKinematics([A,B,C,D,E,F]);
+
+                                    %% Distance between tool and base
+                                    F1 = sim.transform.local{1};
+                                    F7 = sim.transform.local{7};
+                                    Ftool_F7 = sim.transform.tool_offset;
+                                    Ftool = Ftool_F7.transform(F7);
+
+                                    Base = F1.T;
+                                    Tool = Ftool.T;
+
+                                    dx = Base(1)-Tool(1);
+                                    dy = Base(2)-Tool(2);
+                                    dz = Base(3)-Tool(3);
+
+                                    dxyz = sqrt(dx^2+dy^2+dz^2);
+
+                                    if(i/l>checkpoint)
+                                        disp( strcat(string(round(i/l*100)),'%') );
+                                        checkpoint = checkpoint + 0.01;
+                                    end
+
+                                    DX(i) = dx;
+                                    DY(i) = dy;
+                                    DZ(i) = dz;
+                                    DXYZ(i) = dxyz;
+                                    i = i+1;
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            mDX = max(abs(DX));
+            mDY = max(abs(DY));
+            mDZ = max(abs(DZ));
+            mDXYZ = max(abs(DXYZ));
         end
         
         

@@ -268,7 +268,9 @@ classdef Homogeneous < handle
            text(this.T(1),this.T(2),this.T(3),label);
         end
         
-        function plot_plane(this, plane)
+        function plot_plane(this)
+            
+            plane = 'x'
             
             scale = 0.05;
             
@@ -298,18 +300,13 @@ classdef Homogeneous < handle
             x3 = p(:,1);
             y3 = p(:,2);
             z3 = p(:,3);
+            %plot3(x1,y1,z1,'-r',x2,y2,z2,'-g',x3,y3,z3,'-b');
             
+            if upper(plane) == 'X'
+            plot(x1,y1,'-r',x2,y2,'-g',x3,y3,'-b');
             
-            switch upper(plane)
-                
-                case 'X'
-                    plot(y1,z1,'-r',y2,z2,'-g',y3,z3,'-b');
-                case 'Y'
-                    plot(x1,z1,'-r',x2,z2,'-g',x3,z3,'-b');
-                case 'Z'
-                    plot(x1,y1,'-r',x2,y2,'-g',x3,y3,'-b');
-            end
-            
+            xlim([-1,1]);
+            axis equal;
         end
         
     end
