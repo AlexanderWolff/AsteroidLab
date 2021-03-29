@@ -1,4 +1,8 @@
-function plotSim(sim, Target, msg)
+function plotSim_Time(sim, Target)
+
+
+
+
 
 UR3_r = 0.064;
 table_length = 1.99;
@@ -23,9 +27,8 @@ F4 = sim.transform.local{4};
 F5 = sim.transform.local{5};
 F6 = sim.transform.local{6};
 F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
-
+FTool = sim.transform.local{8};
+scale = 0.7;
 
 %% Workspace
 rx = abs(sim.parameters.workspace(1,1) - sim.parameters.workspace(1,2))/2;
@@ -35,14 +38,6 @@ offset_y = sim.parameters.workspace(2,1)+ry;
 rz = abs(sim.parameters.workspace(3,1) - sim.parameters.workspace(3,2))/2;
 offset_z = sim.parameters.workspace(3,1)+rz;
    
-%% Plot
-scale = 0.7;
-margin = 20;
-xpos = 400;
-ypos = 600;
-fig = figure('Position', [xpos ypos scale*1000+margin*6 scale*1000+margin*6],...
-       'name', msg);
-
 
 %% Plot 3D Local 
 subplot(2,2,1)
@@ -68,16 +63,36 @@ plot3([F5.T(1),F6.T(1)],[F5.T(2),F6.T(2)],[F5.T(3),F6.T(3)],'-ok',...
 plot3([F6.T(1),F7.T(1)],[F6.T(2),F7.T(2)],[F6.T(3),F7.T(3)],'-ok',...
     'MarkerEdgeColor',[1,0,0],'LineWidth',3);
 
-plot3([F7.T(1),Ftool.T(1)],[F7.T(2),Ftool.T(2)],[F7.T(3),Ftool.T(3)],'-ok',...
+plot3([F7.T(1),FTool.T(1)],[F7.T(2),FTool.T(2)],[F7.T(3),FTool.T(3)],'-ok',...
     'MarkerEdgeColor',[0,0,1],'LineWidth',1);
 
-Ftool.plot
+FTool.plot
 
+scale = 0.2;
+Z = Homogeneous.fromT([0,0,scale]);
+Z = Z.transform(FTool);
+plot3([FTool.T(1),Z.T(1)],[FTool.T(2),Z.T(2)],[FTool.T(3),Z.T(3)],'-ob',...
+    'MarkerEdgeColor',[0,0,1],'LineWidth',1,'MarkerSize',5)
+Z = Homogeneous.fromT([scale,0,0]);
+Z = Z.transform(FTool);
+plot3([FTool.T(1),Z.T(1)],[FTool.T(2),Z.T(2)],[FTool.T(3),Z.T(3)],'-xb',...
+    'MarkerEdgeColor',[0,0,1],'LineWidth',1,'MarkerSize',5)
+
+% Target
+scale = 0.2;
+Z = Homogeneous.fromT([0,0,scale]);
+Z = Z.transform(Target);
 text(Target.T(1),Target.T(2),Target.T(3)-scale*0.1, 'Target');
 plot3(Target.T(1),Target.T(2),Target.T(3),'x',...
     'MarkerEdgeColor',[1,0,1],'LineWidth',1,'MarkerSize',10);
 plot3(Target.T(1),Target.T(2),Target.T(3),'o',...
     'MarkerEdgeColor',[1,0,1],'LineWidth',1,'MarkerSize',10);
+plot3([Target.T(1),Z.T(1)],[Target.T(2),Z.T(2)],[Target.T(3),Z.T(3)],'-om',...
+    'MarkerEdgeColor',[1,0,1],'LineWidth',1,'MarkerSize',5);
+Z = Homogeneous.fromT([scale,0,0]);
+Z = Z.transform(Target);
+plot3([Target.T(1),Z.T(1)],[Target.T(2),Z.T(2)],[Target.T(3),Z.T(3)],'-xm',...
+    'MarkerEdgeColor',[1,0,1],'LineWidth',1,'MarkerSize',5)
 
 % Draw Table
 z = zeros(length(table));
@@ -88,11 +103,11 @@ surf(table(:,1),table(:,2),z,'FaceColor',[0.9 0.9 1])
 xlabel('X')
 ylabel('Y')
 zlabel('Z')
-xlim([-rx*1.1,rx*1.1]);
-ylim([-ry*1.1,ry*1.1]);
-zlim([-rz*0.1,rz*1.1]);
-axis equal;
-
+xlim([sim.parameters.workspace(1,1),sim.parameters.workspace(1,2)]);
+ylim([sim.parameters.workspace(2,1),sim.parameters.workspace(2,2)]);
+rz = abs(sim.parameters.workspace(3,1) - sim.parameters.workspace(3,2))/2;
+offset_z = sim.parameters.workspace(3,1)+rz;
+zlim([offset_z,rz-offset_z]);
 view(40,20);
 
 
@@ -111,10 +126,10 @@ plot([F3.T(2),F4.T(2)],[F3.T(3),F4.T(3)],'-or','LineWidth',1);
 plot([F4.T(2),F5.T(2)],[F4.T(3),F5.T(3)],'-or','LineWidth',1);
 plot([F5.T(2),F6.T(2)],[F5.T(3),F6.T(3)],'-or','LineWidth',1);
 plot([F6.T(2),F7.T(2)],[F6.T(3),F7.T(3)],'-or','LineWidth',1);
-plot([F7.T(2),Ftool.T(2)],[F7.T(3),Ftool.T(3)],'-or','LineWidth',1);
+plot([F7.T(2),FTool.T(2)],[F7.T(3),FTool.T(3)],'-or','LineWidth',1);
 
-plot(Ftool.T(2),Ftool.T(3),'xb','MarkerSize',10);
-text(Ftool.T(2),Ftool.T(3)+d,'Tool')
+plot(FTool.T(2),FTool.T(3),'xb','MarkerSize',10);
+text(FTool.T(2),FTool.T(3)+d,'Tool')
 
 % Plot Table
 plot([min(table(:,2)),max(table(:,2))],[0,0],':k');
@@ -153,10 +168,10 @@ plot([F3.T(1),F4.T(1)],[F3.T(3),F4.T(3)],'-or','LineWidth',1);
 plot([F4.T(1),F5.T(1)],[F4.T(3),F5.T(3)],'-or','LineWidth',1);
 plot([F5.T(1),F6.T(1)],[F5.T(3),F6.T(3)],'-or','LineWidth',1);
 plot([F6.T(1),F7.T(1)],[F6.T(3),F7.T(3)],'-or','LineWidth',1);
-plot([F7.T(1),Ftool.T(1)],[F7.T(3),Ftool.T(3)],'-or','LineWidth',1);
+plot([F7.T(1),FTool.T(1)],[F7.T(3),FTool.T(3)],'-or','LineWidth',1);
 
-plot(Ftool.T(1),Ftool.T(3),'xb','MarkerSize',10);
-text(Ftool.T(1),Ftool.T(3)+d,'Tool')
+plot(FTool.T(1),FTool.T(3),'xb','MarkerSize',10);
+text(FTool.T(1),FTool.T(3)+d,'Tool')
 
 % Plot Table
 plot([min(table(:,1)),max(table(:,1))],[0,0],':k');
@@ -196,10 +211,10 @@ plot([F3.T(1),F4.T(1)],[F3.T(2),F4.T(2)],'-or','LineWidth',1);
 plot([F4.T(1),F5.T(1)],[F4.T(2),F5.T(2)],'-or','LineWidth',1);
 plot([F5.T(1),F6.T(1)],[F5.T(2),F6.T(2)],'-or','LineWidth',1);
 plot([F6.T(1),F7.T(1)],[F6.T(2),F7.T(2)],'-or','LineWidth',1);
-plot([F7.T(1),Ftool.T(1)],[F7.T(2),Ftool.T(2)],'-or','LineWidth',1);
+plot([F7.T(1),FTool.T(1)],[F7.T(2),FTool.T(2)],'-or','LineWidth',1);
 
-plot(Ftool.T(1),Ftool.T(2),'xb','MarkerSize',10);
-text(Ftool.T(1),Ftool.T(2)+d,'Tool')
+plot(FTool.T(1),FTool.T(2),'xb','MarkerSize',10);
+text(FTool.T(1),FTool.T(2)+d,'Tool')
 
 % Plot Table
 plot([table(:,1);table(1,1)],[table(:,2);table(1,2)],':k');

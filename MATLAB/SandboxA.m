@@ -130,147 +130,95 @@
 
 sim = Simulation('UR3');
 
-%% Target
-Target = Homogeneous.fromT([-0.2,-0.3,0.5]);
 
+
+%% Target
+Target = Homogeneous.fromT([-0.2,-0.3,0.3] );%((rand(1,3)/3)));
+random = rad2deg((rand(1,3)-0.5)*2*pi)
+
+% % Alignment
+% random = [64.3447   92.7864   87.5277];
+Target.setR(RMatrix.fromXYZ(random).R);
 
 %% Check that Target is within Workspace
-
-plotSim(sim, Target, 'Target is Within Workspace');
+% TODO
 
 %% Begin Inverse Kinematics
 % Initialise Pose
 joints = [0,0,0,0,90,0];
 sim.ForwardKinematics(joints);
 
-%% Align with Target in X-Y plane
-F1 = sim.transform.local{1};
-F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
 
-Base = F1.T;
-Tool = Ftool.T;
-Targ = Target.T;
+[joint_history, distances] = sim.InverseK_Position(Target, false);
+plotJoints_Time(sim, Target, joint_history)
+% 
+% % Home to position
+% for i = 1:1
+%     
+%     [joint_history, distances] = sim.InverseK_Position(Target, false);
+%     plotJoints_Time(sim, Target, joint_history)
+%     sim.align_orientation(Target)
+%     closePlotSim(sim,Target);
+% end
+% 
+% 
+% closePlotSim(sim,Target);
+% axis equal
 
-% Find angle diff between Target and Tool
-l1 = sqrt( (Base(1)-Tool(1))^2 + (Base(2)-Tool(2))^2  );
-l2 = sqrt( (Base(1)-Targ(1))^2 + (Base(2)-Targ(2))^2  );
-l3 = sqrt( (Tool(1)-Targ(1))^2 + (Tool(2)-Targ(2))^2  );
+% for i = 1:10
+%     
+%     % Determine if Target and Tool are aligned in orientation
+%     
+%     % Iterate
+%     [joint_history, distances] = sim.InverseK_Position(Target, false);
+%     sim.align_Joint6(Target);
+%     sim.align_Joint4(Target);
+% end
 
-% by Cosine Rule
-angle_diff = acos( (l1^2+l2^2-l3^2)/(2*l1*l2) );
-a_diff = round(rad2deg(angle_diff),6);
+%-82.8092 90 51.8419
 
-% TODO:  Find Direction
+%plotJoints_Time(sim, Target, joint_history)
 
-% Move first Joint until angle diff is zero
-joints = joints + [a_diff,0,0,0,0,0];
-sim.ForwardKinematics(joints);
-plotSim(sim, Target, 'Align with Target in right-ascension');
+% %% Align with Target in orientation
+% Target_F0 = Target;
+% sim.ForwardKinematics(joint_history(end,:))
+% 
+% % Get F4, F5, F6, F7, FTool and Target in terms of F4
+% F6_F5 = sim.transform.chain{6};
+% F7_F6 = sim.transform.chain{7}; 
+% FTool_F7 = sim.transform.chain{8}; 
+% F4_F0 = sim.transform.local{4};
+% F0_F4 = F4_F0.inv;
+% 
+% F4_F4 = Homogeneous.Empty;
+% F5_F4 = sim.transform.chain{5};
+% F6_F4 = F6_F5.transform(F5_F4);
+% F7_F4 = F7_F6.transform(F6_F4);
+% FTool_F4 = FTool_F7.transform(F7_F4);
+% Target_F4 = Target_F0.transform(F0_F4);
+% 
+% scale = 0.1;
+% TargetX = Homogeneous.fromT([scale,0,0]);
+% TargetX = TargetX.transform(Target_F4);
+% TargetZ = Homogeneous.fromT([0,0,scale]);
+% TargetZ = TargetZ.transform(Target_F4);
+% 
+% ToolX = Homogeneous.fromT([scale,0,0]);
+% ToolX = ToolX.transform(FTool_F4);
+% ToolZ = Homogeneous.fromT([0,0,scale]);
+% ToolZ = ToolZ.transform(FTool_F4);
+% 
+% %% Align X axis along Z axis of F7
+% sim.align_Joint6(Target_F0);
+% 
+% closePlotSim(sim,Target);
+% 
+% %% Make Z axis of TOol parallel to Z axis of Target in X-Y by moving F4
+% sim.align_Joint4(Target_F0);
 
-%% Align with Target in elevation
-F2 = sim.transform.local{2};
-F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
+%closePlotSim(sim,Target);
 
-Base = F2.T;
-Tool = Ftool.T;
-Targ = Target.T;
 
-% Find angle diff between Target and Tool
-l1 = sqrt( (Base(1)-Tool(1))^2 + (Base(2)-Tool(2))^2 + (Base(3)-Tool(3))^2  );
-l2 = sqrt( (Base(1)-Targ(1))^2 + (Base(2)-Targ(2))^2 + (Base(3)-Targ(3))^2 );
-l3 = sqrt( (Tool(1)-Targ(1))^2 + (Tool(2)-Targ(2))^2 + (Tool(3)-Targ(3))^2 );
-
-% by Cosine Rule
-angle_diff = acos( (l1^2+l2^2-l3^2)/(2*l1*l2) );
-a_diff = round(rad2deg(angle_diff),6);
-
-% Move first Joint until angle diff is zero
-joints = joints - [0,a_diff,0,0,0,0];
-sim.ForwardKinematics(joints);
-plotSim(sim, Target, 'Align with Target in declination');
-
-%% Align with Target in X-Y plane
-F1 = sim.transform.local{1};
-F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
-
-Base = F1.T;
-Tool = Ftool.T;
-Targ = Target.T;
-
-% Find angle diff between Target and Tool
-l1 = sqrt( (Base(1)-Tool(1))^2 + (Base(2)-Tool(2))^2  );
-l2 = sqrt( (Base(1)-Targ(1))^2 + (Base(2)-Targ(2))^2  );
-l3 = sqrt( (Tool(1)-Targ(1))^2 + (Tool(2)-Targ(2))^2  );
-
-% by Cosine Rule
-angle_diff = acos( (l1^2+l2^2-l3^2)/(2*l1*l2) );
-a_diff = round(rad2deg(angle_diff),6);
-
-% Move first Joint until angle diff is zero
-joints = joints - [a_diff,0,0,0,0,0];
-sim.ForwardKinematics(joints);
-plotSim(sim, Target, 'Align with Target in right-ascension');
-
-%% Align with Target in distance
-F2 = sim.transform.local{2};
-F3 = sim.transform.local{3};
-F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
-
-Base = F2.T;
-Elbow = F3.T;
-Tool = Ftool.T;
-Targ = Target.T;
-
-% Find angle diff between Target and Tool
-l1 = sqrt( (Base(1)-Elbow(1))^2 + (Base(2)-Elbow(2))^2 + (Base(3)-Elbow(3))^2  );
-l2 = sqrt( (Elbow(1)-Tool(1))^2 + (Elbow(2)-Tool(2))^2 + (Elbow(3)-Tool(3))^2 );
-l3_tar = sqrt( (Targ(1)-Base(1))^2 + (Targ(2)-Base(2))^2 + (Targ(3)-Base(3))^2 );
-l3_cur = sqrt( (Tool(1)-Base(1))^2 + (Tool(2)-Base(2))^2 + (Tool(3)-Base(3))^2 );
-
-% by Cosine Rule
-cur = acos( (l1^2+l2^2-l3_cur^2)/(2*l1*l2) );
-tar = acos( (l1^2+l2^2-l3_tar^2)/(2*l1*l2) );
-angle_diff = cur-tar;
-a_diff = round(rad2deg(angle_diff),6);
-
-% Move first Joint until angle diff is zero
-joints = joints + [0,0,a_diff,0,0,0];
-sim.ForwardKinematics(joints);
-plotSim(sim, Target, 'Align with Target in altitude');
-
-%% Align with Target in elevation
-F2 = sim.transform.local{2};
-F7 = sim.transform.local{7};
-Ftool_F7 = sim.transform.tool_offset;
-Ftool = Ftool_F7.transform(F7);
-
-Base = F2.T;
-Tool = Ftool.T;
-Targ = Target.T;
-
-% Find angle diff between Target and Tool
-l1 = sqrt( (Base(1)-Tool(1))^2 + (Base(2)-Tool(2))^2 + (Base(3)-Tool(3))^2  );
-l2 = sqrt( (Base(1)-Targ(1))^2 + (Base(2)-Targ(2))^2 + (Base(3)-Targ(3))^2 );
-l3 = sqrt( (Tool(1)-Targ(1))^2 + (Tool(2)-Targ(2))^2 + (Tool(3)-Targ(3))^2 );
-
-% by Cosine Rule
-angle_diff = acos( (l1^2+l2^2-l3^2)/(2*l1*l2) );
-a_diff = round(rad2deg(angle_diff),6);
-
-% Move first Joint until angle diff is zero
-joints = joints - [0,a_diff,0,0,0,0];
-sim.ForwardKinematics(joints);
-plotSim(sim, Target, 'Align with Target in declination');
-
-%% Align with Target in orientation
 
 
 %% Check that solution is feasible (not intersecting robot/obstacles)

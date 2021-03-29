@@ -416,7 +416,7 @@ classdef Simulation < handle
             %disp(joint_angles)
             
             if ~isreal(joint_angles)
-                %disp('Error! Imaginary Angle');
+                disp('Error! Imaginary Angle');
                 
                 this.Transform(real(joint_angles));
                 return
@@ -626,7 +626,7 @@ classdef Simulation < handle
             end 
         end
         
-        function a_diff = align_altitude(this, Target)
+        function align_altitude(this, Target)
             
             current_joints = this.joints.deg;
             
@@ -676,6 +676,8 @@ classdef Simulation < handle
 
             % New altitude of wrist
             Altitude.new = Altitude.wrist + Altitude.diff; 
+            
+            disp(Altitude.diff)
 
             [new_Js, new_Je, dJw] = AltControl(Js, Je, L1, L2, Altitude.new);
 
@@ -684,8 +686,6 @@ classdef Simulation < handle
 
             new_j4 = j4 + rad2deg(dJw);
             this.ForwardKinematics([j1, new_j2, new_j3, new_j4, j5, j6]); 
-            
-            a_diff = Altitude.diff;
             
         end
         
@@ -975,12 +975,11 @@ classdef Simulation < handle
 
                 %% Align with Target in altitude
                 disp('AA')
-                a_diff = this.align_altitude(Target);
-                disp(a_diff)
+                this.align_altitude(Target);
                 
                 % Align Orientation
-                %disp('AA-O')
-                %this.align_orientation(Target, false);
+                disp('AA-O')
+                this.align_orientation(Target, false);
                 
                 new_distance = this.get_distance_to(Target);
                 
