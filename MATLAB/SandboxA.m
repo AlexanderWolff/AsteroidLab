@@ -133,7 +133,7 @@ sim = Simulation('UR3');
 
 
 %% Target
-Target = Homogeneous.fromT([-0.2,-0.3,0.3] );%((rand(1,3)/3)));
+Target = Homogeneous.fromT([-0.2,-0.2,0.2] );%((rand(1,3)/3)));
 random = rad2deg((rand(1,3)-0.5)*2*pi)
 
 % % Alignment
@@ -150,6 +150,7 @@ sim.ForwardKinematics(joints);
 
 
 [joint_history, distances] = sim.InverseK_Position(Target, false);
+disp(distances')
 plotJoints_Time(sim, Target, joint_history)
 % 
 % % Home to position

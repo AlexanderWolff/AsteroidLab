@@ -76,6 +76,21 @@ classdef Simulation < handle
             this.transform.local = cell(7,1);
             
             this.Transform([0,0,0,0,0,0]);
+            this.Calculate_Tool_Radius();
+            this.parameters.bot_margin = 0.05;
+        end
+        
+        function Calculate_Tool_Radius(this)          
+            % needs transform to have been run at least once
+            A = this.transform.local{5}.T;
+            B = this.transform.local{8}.T;
+
+            dx = abs(B(1) - A(1));
+            dy = abs(B(2) - A(2));
+            dz = abs(B(3) - A(3));
+            distance = sqrt(dx^2 + dy^2 + dz^2); 
+            
+            this.parameters.tool_radius = distance;
         end
         
         function Set_Base_Offset(this,offset)
@@ -909,11 +924,12 @@ classdef Simulation < handle
             Target_Tool = Target_F0.transform(F0_FTool);
         end
         
-        function [joint_history, distances] = InverseK_Position(this,Target,plot_dist)
+        function [joint_history, distances] = InverseK(this,Target,plot_dist)
             
+            debug = false;
             
             %% Find a solution Iteratively
-            max_i = 1e3;
+            max_i = 1e2;
             max_d = 1e-4;
             distances = zeros(1,max_i*3);
             distance = this.get_distance_to(Target);
@@ -936,18 +952,23 @@ classdef Simulation < handle
                 end
 
                 %% Align in Right Ascension
-                disp('ARA')
+                if debug 
+                    disp('ARA') 
+                end
                 this.align_right_ascension(Target);
 
                 % Align Orientation
-                disp('ARA-O')
+                if debug
+                    disp('ARA-O')
+                end
                 this.align_orientation(Target, false);
                 
                 new_distance = this.get_distance_to(Target);
                 
-                disp(3*i-2)
-                disp(new_distance-distance)
-                
+                if debug
+                    disp(3*i-2)
+                    disp(new_distance-distance)
+                end
                 distance = new_distance;
                 distances(3*i-2) = distance;
                 joint_history(3*i-2,:) = this.joints.deg;
@@ -955,18 +976,23 @@ classdef Simulation < handle
                 
                 
                 %% Align with Target in Declination
-                disp('AD')
+                if debug
+                    disp('AD')
+                end
                 this.align_declination(Target);
                 
                 % Align Orientation
-                disp('AD-O')
+                if debug
+                    disp('AD-O')
+                end
                 this.align_orientation(Target, false);
                 
                 new_distance = this.get_distance_to(Target);
                 
-                disp(3*i-1)
-                disp(new_distance-distance)
-                
+                if debug
+                    disp(3*i-1)
+                    disp(new_distance-distance)
+                end
                 distance = new_distance;
                 distances(3*i-1) = distance;
                 joint_history(3*i-1,:) = this.joints.deg;
@@ -974,30 +1000,28 @@ classdef Simulation < handle
                 
 
                 %% Align with Target in altitude
-                disp('AA')
-                a_diff = this.align_altitude(Target);
-                disp(a_diff)
-                
-                % Align Orientation
-                %disp('AA-O')
-                %this.align_orientation(Target, false);
-                
+                if debug
+                    disp('AA')
+                end
+                this.align_altitude(Target);
+       
                 new_distance = this.get_distance_to(Target);
                 
-                disp(3*i)
-                disp(new_distance-distance)
+                if debug
+                    disp(3*i)
+                    disp(new_distance-distance)
+                end
                 
                 distance = new_distance;
                 
                 distances(3*i) = distance;
                 joint_history(3*i,:) = this.joints.deg;
                 
-                
-                
                 if(i>1)
-                    if abs(distances(3*(i-1))-distances(3*i))<1e-3
+                    if abs(distances(3*(i-1))-distances(3*i))<1e-3 || distance < 1e-3
                         
-                        joint_history = joint_history(1:3*i,:);
+                        joint_history = joint_history(3:3*i,:);
+                        distances = distances(3:3*i);
                         
                         break
                     end
@@ -1023,6 +1047,326 @@ classdef Simulation < handle
                 plot([i+1,max_i],[distances(i+1),distances(i+1)],'-g');
                 xlim([0,length(distances)+1]);
             end
+        end
+        
+        function [joint_history, distances] = InverseK_Position(this,Target,plot_dist)
+            % Inverse Kinematics for position only
+            
+            debug = false;
+            
+            %% Find a solution Iteratively
+            max_i = 1e2;
+            max_d = 1e-4;
+            distances = zeros(1,max_i*3);
+            distance = this.get_distance_to(Target);
+            distances(1:3) = ones(1,3)*distance;
+            joint_history = zeros(max_i*3,6);
+            joint_history(1:3,:) = zeros(3,6)+this.joints.deg;
+            for i = 2:max_i+1
+
+                if(this.get_distance_to(Target) <= max_d)
+                    distance = this.get_distance_to(Target);
+                    distances(3*i-2) = distance;
+                    distances = distances(3:3*i-2);
+                    joint_history(3*i-2,:) = this.joints.deg;
+                    joint_history = joint_history(3:3*i-2,:);
+
+                    fprintf('\nSolution found within %i iterations\n', i);
+                    disp(this.joints)
+
+                    break;
+                end
+
+                %% Align in Right Ascension
+                if debug 
+                    disp('ARA') 
+                end
+                this.align_right_ascension(Target);
+                new_distance = this.get_distance_to(Target);
+                
+                if debug
+                    disp(3*i-2)
+                    disp(new_distance-distance)
+                end
+                distance = new_distance;
+                distances(3*i-2) = distance;
+                joint_history(3*i-2,:) = this.joints.deg;
+                
+                
+                
+                %% Align with Target in Declination
+                if debug
+                    disp('AD')
+                end
+                this.align_declination(Target);
+                
+                new_distance = this.get_distance_to(Target);
+                
+                if debug
+                    disp(3*i-1)
+                    disp(new_distance-distance)
+                end
+                distance = new_distance;
+                distances(3*i-1) = distance;
+                joint_history(3*i-1,:) = this.joints.deg;
+                
+                
+                %% Align with Target in altitude
+                if debug
+                    disp('AA')
+                end
+                this.align_altitude(Target);
+       
+                new_distance = this.get_distance_to(Target);
+                
+                if debug
+                    disp(3*i)
+                    disp(new_distance-distance)
+                end
+                
+                distance = new_distance;
+                
+                distances(3*i) = distance;
+                joint_history(3*i,:) = this.joints.deg;
+                
+                if(i>1)
+                    if abs(distances(3*(i-1))-distances(3*i))<1e-3 || distance < 1e-3
+                        
+                        joint_history = joint_history(3:3*i,:);
+                        distances = distances(3:3*i);
+                        
+                        break
+                    end
+                end
+            end
+            if i == max_i
+                disp('Solution not found within allowed iteration');
+            end
+
+            if plot_dist
+                figure('name', 'Distance from Tool to Target');
+                hold on;
+                title('Distance from Tool to Target')
+                ylabel('Distance To Target')
+                xlabel('Iteration Epoch')
+                plot([0,max_i],[0,0],'-k');
+                plot([0,max_i],[max_d,max_d],'--r');
+                plot(0,distance,'xb');
+                for i = 1:length(distances)-1
+                    plot(i,distances(i),'xb');
+                end
+                plot(i+1,distances(i+1),'xg');
+                plot([i+1,max_i],[distances(i+1),distances(i+1)],'-g');
+                xlim([0,length(distances)+1]);
+            end
+        end
+        
+        function [valid, constraint] = CheckWorkspace(this, Target)
+            bot_margin = this.parameters.bot_margin;
+
+
+            %% Check that Target is within Workspace
+            % workspace is a sphere offset at Joint 2
+            workspace.radius = 0.5*abs(mean(this.parameters.workspace(1:3,1) -  this.parameters.workspace(1:3,2)));
+            workspace.offset = -1*0.5*(this.parameters.workspace(1:3,1) +  this.parameters.workspace(1:3,2));
+
+            %% determine whether target is in reachable workspace
+            % find distance between Target and workspace offset
+            dx = Target.T(1) - workspace.offset(1);
+            dy = Target.T(2) - workspace.offset(2);
+            dz = Target.T(3) - workspace.offset(3);
+
+            distance = sqrt( dx^2 + dy^2 + dz^2 );
+
+            if distance <= workspace.radius
+                constraint.reachable = true;
+            else
+                constraint.reachable = false;
+            end
+
+            %% plot operational workspace boundaries
+
+            % target sphere of influence radius is sim.parameters.tool_radius
+            operational_radius = workspace.radius-this.parameters.tool_radius;
+
+            %% determine if point + orientation is in operational workspace
+
+            if distance <= operational_radius
+                constraint.operational = true;
+            else
+                constraint.operational = false;
+            end
+
+            %% reduce workspace with further constraints (eg. table)
+
+            % create a cube (6 faces) which the target has to be within
+            cube.bot = 0 + bot_margin;
+            cube.top =  workspace.offset(3)+workspace.radius;
+
+
+            %% determine whether target is within allowed workspace
+            if Target.T(3) >= cube.bot
+                constraint.bot = true;
+            else
+                constraint.bot = false;
+            end
+
+            if Target.T(3) <= cube.top
+                constraint.top = true;
+            else
+                constraint.top = false;
+            end
+
+            if constraint.top &&  constraint.bot 
+                constraint.allowed = true;
+            else
+                constraint.allowed = false;
+            end
+
+            if constraint.reachable && constraint.operational && constraint.allowed
+                constraint.all = true;
+            else
+                constraint.all = false;
+            end
+
+            valid = constraint.all;
+        end
+        
+        function constraint = DisplayWorkspace(this)
+    
+            bot_margin = this.parameters.bot_margin;
+
+
+            %% Check that Target is within Workspace
+
+            %% plot reachable workspace boundaries
+
+            % workspace is a sphere offset at Joint 2
+            workspace.radius = 0.5*abs(mean(this.parameters.workspace(1:3,1) -  this.parameters.workspace(1:3,2)));
+            workspace.offset = -1*0.5*(this.parameters.workspace(1:3,1) +  this.parameters.workspace(1:3,2));
+
+            [reach.X,reach.Y,reach.Z] = sphere(10);
+            reach.X = (reach.X * workspace.radius) + workspace.offset(1);
+            reach.Y = (reach.Y * workspace.radius) + workspace.offset(2);
+            reach.Z = (reach.Z * workspace.radius) + workspace.offset(3);
+
+            hold on;
+            lightGrey = 0.8*[1 1 1];
+            surface(reach.X, reach.Y, reach.Z, 'FaceColor', 'none','EdgeColor',lightGrey)
+            axis equal
+
+            %% plot operational workspace boundaries
+
+            % target sphere of influence radius is sim.parameters.tool_radius
+            operational_radius = workspace.radius-this.parameters.tool_radius;
+
+            [operate.X,operate.Y,operate.Z] = sphere(20);
+            operate.X = (operate.X * operational_radius ) + workspace.offset(1);
+            operate.Y = (operate.Y * operational_radius ) + workspace.offset(2);
+            operate.Z = (operate.Z * operational_radius ) + workspace.offset(3);
+
+            lightBlue = 0.9*[.7 .7 1];
+            surface(operate.X, operate.Y, operate.Z, 'FaceColor', 'none','EdgeColor',lightBlue)
+
+            
+            %% reduce workspace with further constraints (eg. table)
+
+            % create a cube (6 faces) which the target has to be within
+            cube.bot = 0 + bot_margin;
+            cube.top =  workspace.offset(3)+workspace.radius;
+            cube.sid = workspace.radius*2;
+
+            cube.squ = [ cube.sid/2, cube.sid/2;...
+                         cube.sid/2,-cube.sid/2;...
+                        -cube.sid/2,-cube.sid/2;...
+                        -cube.sid/2, cube.sid/2;...
+                         cube.sid/2, cube.sid/2;...
+                         ];
+
+
+            %% determine whether target is within allowed workspace
+            surf(cube.squ(:,1),...
+                 cube.squ(:,2),...
+                 cube.bot*ones(5,5), 'FaceColor',lightGrey )
+
+            surf(cube.squ(:,1),...
+                 cube.squ(:,2),...
+                 cube.top*ones(5,5), 'FaceColor',lightGrey )
+             alpha(.1)
+            view(45,30)
+        end
+        
+        function constraint = DisplayTarget(this, Target)
+    
+            %% Check that Target is within Workspace
+
+            %% plot reachable workspace boundaries
+
+            % workspace is a sphere offset at Joint 2
+            workspace.radius = 0.5*abs(mean(this.parameters.workspace(1:3,1) -  this.parameters.workspace(1:3,2)));
+            workspace.offset = -1*0.5*(this.parameters.workspace(1:3,1) +  this.parameters.workspace(1:3,2));
+
+            hold on;
+            axis equal
+
+            Target.plotL('T');
+
+            %% determine whether target is in reachable workspace
+
+            % find distance between Target and workspace offset
+            dx = Target.T(1) - workspace.offset(1);
+            dy = Target.T(2) - workspace.offset(2);
+            dz = Target.T(3) - workspace.offset(3);
+
+            distance = sqrt( dx^2 + dy^2 + dz^2 );
+
+            if distance <= workspace.radius
+                constraint.reachable = true;
+            else
+                constraint.reachable = false;
+            end
+
+            %% plot operational workspace boundaries
+
+            % target sphere of influence radius is sim.parameters.tool_radius
+            operational_radius = workspace.radius-this.parameters.tool_radius;
+
+            %% determine if point + orientation is in operational workspace
+
+            if distance <= operational_radius
+                constraint.operational = true;
+            else
+                constraint.operational = false;
+            end
+
+            if constraint.operational
+                target.color = 0.9*[.7 1 .7];
+            else
+                if constraint.reachable
+                    target.color = 0.9*[.7 .7 1];
+                else
+                    target.color = 0.9*[1 .7 .7];
+                end
+            end
+
+            % sphere is centred along the vector of target-workspace offset
+            % at one radius away from the target
+            [target.X,target.Y,target.Z] = sphere(10);
+            target.X = (target.X * this.parameters.tool_radius) + Target.T(1);
+            target.Y = (target.Y * this.parameters.tool_radius) + Target.T(2);
+            target.Z = (target.Z * this.parameters.tool_radius) + Target.T(3);
+
+            surface(target.X, target.Y, target.Z, 'FaceColor', 'none','EdgeColor',target.color)
+        end
+        
+        
+        function valid = CheckPose(this)
+            %% determine whether each robot joints are within allowed workspace
+            valid = true;
+            for i = 2:8
+                [~, constraint] = this.CheckWorkspace(this.transform.local{i});
+                valid = constraint.allowed && valid;
+            end 
         end
         
     end

@@ -2,16 +2,55 @@
 
 sim = Simulation('UR3');
 
+% Initialise Pose
+joints = randi(360,1,6)-180%[0,-60,60,10,60,40];
+sim.ForwardKinematics(joints);
+Target = Homogeneous.fromT([-0.2,-0.3,0.4] );
+plotSim(sim, Target, '');
 
 %% Pigeonhead Motion
 % Moving Joint 0 will rotate wrist to maintain orientation
 
+
+% plot sphere around target (radius = frame 5 workspace)
+
+A = sim.transform.local{5}.T;
+B = sim.transform.local{8}.T;
+
+dx = abs(B(1) - A(1));
+dy = abs(B(2) - A(2));
+dz = abs(B(3) - A(3));
+distance = sqrt(dx^2 + dy^2 + dz^2);
+
+disp(distance)
+
+
+subplot(2,2,1);
+plot3([A(1), B(1)],[A(2), B(2)],[A(3), B(3)], ':r')
+
+return
+
+% plot vector showing right ascension and declination
+% start at target , stop at edge of sphere
+
+
+% plot vector between edge of sphere and robot origin (joint 2)
+
+
+% change right ascension/declination
+
+
+% find change in where sphere intersects and therefore sphere-robot origin 
+% vector new length and change in declination/right ascension
+
+
+
+
+
+
+
 %% Begin Inverse Kinematics
-% Initialise Pose
-joints = [0,0,0,10,90,40];
-sim.ForwardKinematics(joints);
-Target = Homogeneous.fromT([-0.2,-0.3,0.4] );
-%plotSim(sim, Target, '');
+
 
 history = 10;
 joint_history = zeros(history,length(joints));
@@ -33,11 +72,11 @@ for i = 2:history
     %% J4-J3-J2 Triangle
     F2 = sim.transform.local{2};
     F3 = sim.transform.local{3};
-    F4 = sim.transform.local{4};
+    A = sim.transform.local{4};
 
     J2 = F2.T;
     J3 = F3.T;
-    J4 = F4.T;
+    J4 = A.T;
     
     % L1 : J2 and J3
     L1 = sqrt( (J2(1)-J3(1))^2 + (J2(2)-J3(2))^2 + (J2(3)-J3(3))^2 );
@@ -55,8 +94,8 @@ for i = 2:history
     Altitude.wrist = sqrt( (J2(1)-J4(1))^2 + (J2(2)-J4(2))^2 + (J2(3)-J4(3))^2 );
      
     % Altitude of Tool
-    F8 = sim.transform.local{8};
-    J8 = F8.T;
+    B = sim.transform.local{8};
+    J8 = B.T;
     Altitude.tool = sqrt( (J2(1)-J8(1))^2 + (J2(2)-J8(2))^2 + (J2(3)-J8(3))^2 );
     
     % Altitude of Target

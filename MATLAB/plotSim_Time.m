@@ -1,9 +1,6 @@
 function plotSim_Time(sim, Target)
 
 
-
-
-
 UR3_r = 0.064;
 table_length = 1.99;
 l = table_length/2;

@@ -312,6 +312,69 @@ classdef Homogeneous < handle
             
         end
         
+        function point_towards(this, Target)
+            
+            % Original Point
+            PointA = Homogeneous.fromT( this.T );
+
+            % Pointing Towards
+            PointB = Homogeneous.fromT( Target.T );
+
+            % Gradients
+            A = PointA.T;
+            B = PointB.T;
+
+            dx = B(1) - A(1);
+            dy = B(2) - A(2);
+            dz = B(3) - A(3);
+
+            ab_projection = sqrt( dx^2 + dy^2 );
+
+            %% Right Ascension
+            % Find out angle between XY projection of AB and X axis
+
+            % Triangle: projection of AB, dx, dy
+            right_ascension = atan2( dx, dy );
+
+            %% Declination
+            % Find out angle between XY projection of AB and AB
+            declination = atan2( dz, ab_projection );
+
+            r = RMatrix.fromXYZ( [0, pi/2-declination, pi/2-right_ascension] ).R;
+            this.setR( r );
+        end
+        
+        function r = point_against(this, Target)
+            
+            % Original Point
+            PointA = Homogeneous.fromT( this.T );
+
+            % Pointing Towards
+            PointB = Homogeneous.fromT( Target.T );
+
+            % Gradients
+            A = PointA.T;
+            B = PointB.T;
+
+            dx = B(1) - A(1);
+            dy = B(2) - A(2);
+            dz = B(3) - A(3);
+
+            ab_projection = sqrt( dx^2 + dy^2 );
+
+            %% Right Ascension
+            % Find out angle between XY projection of AB and X axis
+
+            % Triangle: projection of AB, dx, dy
+            right_ascension = atan2( dx, dy );
+
+            %% Declination
+            % Find out angle between XY projection of AB and AB
+            declination = atan2( dz, ab_projection );
+
+            r = RMatrix.fromXYZ( [pi, pi/2-declination, pi/2-right_ascension] ).R;
+        end
+        
     end
     
 end
