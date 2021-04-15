@@ -9,19 +9,6 @@ sim.DisplayWorkspace
 plotRobot(sim)
 
 
-%% Heart Curve
-% scale in m
-scale = 0.1;
-
-t = linspace(0,2*pi,20);
-x = 16*(sin(t)).^3;
-y = 13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t);
-x = (x/max(x))*scale;
-y = (y/max(y))*scale;
-%figure
-%plot(x,y,'-',x,y, 'x')
-
-%% Circle Arc
 demo_length = 40;
 x = linspace(-pi,pi,demo_length);
 plot3(0.5*sin(x)-0.4, 0.5*cos(x), 0.5*sin(x)+0.2*cos(x) )
@@ -78,23 +65,21 @@ end
 Solutions = zeros(length(Trajectory),6);
 for i = 1:length(Trajectory)
     
-    disp(i)
-    
     %joints = [0,0,0,0,90,0];
     %sim.ForwardKinematics(joints);
     [joint_history, distances] = sim.InverseK(Trajectory{i}, false);
     
     if distances(end) > 1e-3
         disp('Attempting to find Position ONLY Inverse Kinematic Solution')
+        sprintf(\\)
         joints = [0,0,0,0,90,0];
         sim.ForwardKinematics(joints);
         [joint_history, distances] = sim.InverseK_Position(Trajectory{i}, false);
-        
     end
     
     %plotJoints_Time(sim, Target, joint_history)
     
-    Solutions(i,:) = real(joint_history(end,:));
+    Solutions(i,:) = joint_history(end,:);
 end
 
 

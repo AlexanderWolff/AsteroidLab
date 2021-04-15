@@ -41,14 +41,26 @@ def Program_Template():
      
       end
    end
+   
+   textmsg("Listening for MoveJ")
   
    write_output_integer_register(0, 0)
    run Update()
-    
+   
+   if read_input_integer_register(1)!=1:
+   
+      textmsg("Input Int Register 1 is not reset! Value = ",read_input_integer_register(1))
+      textmsg("Input Int Register 0 value = ",read_input_integer_register(0))
+      
+      i = 0
+      while i < 10:
+         textmsg(i,read_input_float_register(i))
+         i = i+1
+      end
+   end
+   
    setp = get_actual_joint_positions()
    rtde_set_watchdog("input_int_register_0",1,"PAUSE")
-   
-   
   
    while read_input_integer_register(1)==1:
       write_output_integer_register(0, 0)
@@ -59,6 +71,8 @@ def Program_Template():
       write_output_integer_register(0, 1)
       sync()
   end
+   
+  textmsg("Ending MoveJ")
    
   write_output_integer_register(0, 0)
    

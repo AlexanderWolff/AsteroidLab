@@ -907,6 +907,18 @@ classdef Simulation < handle
             
         end
         
+        function align_orientation_x(this, Target)
+           
+            disp('aligning tooltip x axis')
+            
+            s = this.joints.deg;
+            
+            x = rad2deg(RMatrix(this.transformTarget_Tool(Target).R).toXYZ);
+            s(6) = s(6)+x(3);
+
+            this.ForwardKinematics(s);
+        end
+        
         function distance = get_distance_to(this, Target)
             % Distance from Tooltip to Target
             FTool = this.transform.local{8};
@@ -1057,6 +1069,8 @@ classdef Simulation < handle
             
             debug = false;
             
+            target_dist = 1e-5;
+            
             %% Find a solution Iteratively
             max_i = 1e2;
             max_d = 1e-4;
@@ -1133,7 +1147,7 @@ classdef Simulation < handle
                 joint_history(3*i,:) = this.joints.deg;
                 
                 if(i>1)
-                    if abs(distances(3*(i-1))-distances(3*i))<1e-3 || distance < 1e-3
+                    if abs(distances(3*(i-1))-distances(3*i))<target_dist || distance < target_dist
                         
                         joint_history = joint_history(3:3*i,:);
                         distances = distances(3:3*i);
@@ -1145,6 +1159,12 @@ classdef Simulation < handle
             if i == max_i
                 disp('Solution not found within allowed iteration');
             end
+            
+            align_orientation_x(this, Target);
+            
+            joint_history(length(joint_history)+1,:) = this.joints.deg;
+            
+            joint_history = real(joint_history);
 
             if plot_dist
                 figure('name', 'Distance from Tool to Target');

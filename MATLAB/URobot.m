@@ -120,10 +120,14 @@ classdef URobot < handle
             live = 1;
             watchdog = 1;
             
+            
+            
             this.rtde.Start();
             this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), tcp_bin, ...
                        double2uint8(max_speed),double2uint8(accel),double2uint8(time),double2uint8(blend_radius)]);
             
+                   
+                   
             while true
                 watchdog = uint8(watchdog+1);
                 
@@ -196,6 +200,8 @@ classdef URobot < handle
             % Clear io stream
             this.rtde.Flush();
             
+            this.rtde.Set_Protocol_Version(1);
+            
             this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd')
             
             % Set Inputs
@@ -207,7 +213,20 @@ classdef URobot < handle
                 y = strjoin({y,sprintf('input_double_register_%i',i)},',');
             end
             y = y(2:end);
+            
             this.rtde.Set_Inputs(y)
+            
+            live = 1;
+            watchdog = 1;
+            
+            this.rtde.Log_Message(3, 'Matlab', 'Starting Stream')
+            
+            
+            this.rtde.Send_Command('U', [this.rtde.recipe_id, uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
+            this.rtde.Collect();
+            
+            this.rtde.Start();
+            
             
             % Execute Remote Move Program 
             t = tcpclient(this.ip,30002);
@@ -215,14 +234,6 @@ classdef URobot < handle
             command = fileread(directory+"/Program_Control_MoveJ.script");
             write(t, unicode2native(command,'US-ASCII'));
             clear t;
-            
-            
-            live = 1;
-            watchdog = 1;
-            
-            this.rtde.Start();
-            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
-            
             
             
             while true
