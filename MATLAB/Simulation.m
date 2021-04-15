@@ -74,6 +74,8 @@ classdef Simulation < handle
             this.transform.tool_offset = Homogeneous.Empty;
             this.transform.chain = cell(7,1);
             this.transform.local = cell(7,1);
+            this.tool.local = Homogeneous.Empty;
+            this.tool.global = Homogeneous.Empty;
             
             this.Transform([0,0,0,0,0,0]);
             this.Calculate_Tool_Radius();

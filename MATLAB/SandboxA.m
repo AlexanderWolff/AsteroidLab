@@ -130,28 +130,50 @@
 
 sim = Simulation('UR3');
 
+figure('name','Robots');
+hold on;
 
 
 %% Target
 Target = Homogeneous.fromT([-0.2,-0.2,0.2] );%((rand(1,3)/3)));
 random = rad2deg((rand(1,3)-0.5)*2*pi)
 
-% % Alignment
-% random = [64.3447   92.7864   87.5277];
-Target.setR(RMatrix.fromXYZ(random).R);
+figure('name','Tools in Global (F0) Frame');
+hold on
+sim1.tool.global.plot
+text(sim1.tool.global.T(1),sim1.tool.global.T(2),sim1.tool.global.T(3),'UR3 T')
 
-%% Check that Target is within Workspace
-% TODO
+sim2.tool.global.plot
+text(sim2.tool.global.T(1),sim2.tool.global.T(2),sim2.tool.global.T(3),'UR5 T')
+xlim([-2,2]);
+axis equal;
 
-%% Begin Inverse Kinematics
-% Initialise Pose
-joints = [0,0,0,0,90,0];
-sim.ForwardKinematics(joints);
+% Tool 1 in F0 frame
+Tool1_F0 = sim1.tool.global;
 
+% Tool 2 in F0 frame
+Tool2_F0 = sim2.tool.global;
 
-[joint_history, distances] = sim.InverseK_Position(Target, false);
-disp(distances')
-plotJoints_Time(sim, Target, joint_history)
+% F0 in Tool 1 frame
+F0_Tool1 = Tool1_F0.inv;
+
+% Tool 1 in Tool 1 frame
+Tool1_Tool1 = Tool1_F0.transform(F0_Tool1);
+
+% Tool 2 in Tool 1 frame
+Tool2_Tool1 = Tool2_F0.transform(F0_Tool1);
+
+figure('name','In UR3 Tool Frame');
+hold on
+Tool1_Tool1.plot
+text(Tool1_Tool1.T(1),Tool1_Tool1.T(2),Tool1_Tool1.T(3),'UR3 T')
+
+Tool2_Tool1.plot
+text(Tool2_Tool1.T(1),Tool2_Tool1.T(2),Tool2_Tool1.T(3),'UR5 T')
+xlim([-2,2]);
+axis equal;
+
+% %% Find out distance between bases from the circumference
 % 
 % % Home to position
 % for i = 1:1
