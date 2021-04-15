@@ -9,7 +9,7 @@ sim.DisplayWorkspace
 plotRobot(sim)
 
 
-demo_length = 20;
+demo_length = 40;
 x = linspace(-pi,pi,demo_length);
 plot3(0.5*sin(x)-0.4, 0.5*cos(x), 0.5*sin(x)+0.2*cos(x) )
 
