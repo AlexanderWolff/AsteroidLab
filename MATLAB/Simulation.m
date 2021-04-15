@@ -6,6 +6,7 @@ classdef Simulation < handle
        
        transform
        joints
+       tool
     end
     
     properties (Constant, GetAccess='private')
@@ -1234,7 +1235,7 @@ classdef Simulation < handle
             valid = constraint.all;
         end
         
-        function constraint = DisplayWorkspace(this)
+        function DisplayWorkspace(this)
     
             bot_margin = this.parameters.bot_margin;
 

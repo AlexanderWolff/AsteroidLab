@@ -16,7 +16,7 @@ end
 
 figure;
 hold on;
-[~, constaint] = sim.CheckWorkspace(Target);
+[~, constraint] = sim.CheckWorkspace(Target);
 disp(constraint)
 
 sim.DisplayWorkspace;
