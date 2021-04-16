@@ -80,7 +80,7 @@ classdef Simulation < handle
             
             this.Transform([0,0,0,0,0,0]);
             this.Calculate_Tool_Radius();
-            this.parameters.bot_margin = 0.05;
+            this.parameters.bot_margin = 0.1;
         end
         
         function Calculate_Tool_Radius(this)          

@@ -15,7 +15,6 @@ def Program_Template():
    global setp = [0,0,0,0,0,0]
    global move = [0,0,0,0]
    
-   
    thread Update():
       setp = get_actual_joint_positions()
       
@@ -50,13 +49,7 @@ def Program_Template():
    if read_input_integer_register(1)!=1:
    
       textmsg("Input Int Register 1 is not reset! Value = ",read_input_integer_register(1))
-      textmsg("Input Int Register 0 value = ",read_input_integer_register(0))
-      
-      i = 0
-      while i < 10:
-         textmsg(i,read_input_float_register(i))
-         i = i+1
-      end
+      textmsg("Remember to disable EtherNet/IP Adapter in Installatio Tab on the Robot Interface!")
    end
    
    setp = get_actual_joint_positions()
@@ -66,7 +59,11 @@ def Program_Template():
       write_output_integer_register(0, 0)
       sync()
      
-      movej( setp, move[0] , move[1], move[2], move[3])
+      
+      if is_steady():
+         textmsg("Blend Radius (m) = ",move[3])
+         movej( setp, move[0] , move[1], move[2], move[3])
+      end
      
       write_output_integer_register(0, 1)
       sync()

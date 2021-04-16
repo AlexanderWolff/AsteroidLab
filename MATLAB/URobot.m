@@ -167,6 +167,10 @@ classdef URobot < handle
         
         
         function Move_Joints(this, joints, x)
+            %%
+            % Remember to disable EtherNet/IP Adapter in Installatio Tab
+            % On the Robot Interface
+            %%
 
             if length(x)<2
                 max_speed = 0.5;
@@ -202,7 +206,7 @@ classdef URobot < handle
             
             this.rtde.Set_Protocol_Version(1);
             
-            this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd')
+            this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd');
             
             % Set Inputs
             y = '';
@@ -214,15 +218,16 @@ classdef URobot < handle
             end
             y = y(2:end);
             
-            this.rtde.Set_Inputs(y)
+            this.rtde.Set_Inputs(y);
+            
             
             live = 1;
             watchdog = 1;
             
             this.rtde.Log_Message(3, 'Matlab', 'Starting Stream')
             
-            
-            this.rtde.Send_Command('U', [this.rtde.recipe_id, uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
+            this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live)]);
+            %this.rtde.Send_Command('U', [uint32b2uint8(watchdog), uint32b2uint8(live), stack(:,1)', parameters]);
             this.rtde.Collect();
             
             this.rtde.Start();
@@ -303,6 +308,68 @@ classdef URobot < handle
             plot(t, target_a')
             title('Joint Accelerations')
             
+        end
+        
+        function BlendMove(this,Solutions, params)
+            
+            V = params{1};
+            A = params{2};
+            T = params{3};
+            B = params{4};
+            
+            L = '';
+            for i = 1:size(Solutions,1)
+
+                s = deg2rad(Solutions(i,:));
+
+                v = V(i);
+                a = A(i);
+                t = T(i);
+                b = B(i);
+
+                l = sprintf('write_output_integer_register(0, 0)\n');
+                L = sprintf('%s%s',L,l);
+                l = sprintf('\tmovej(');
+                L = sprintf('%s%s',L,l);
+                l = sprintf('[%f,%f,%f,%f,%f,%f],',s(1),s(2),s(3),s(4),s(5),s(6));
+                L = sprintf('%s%s',L,l);
+                l = sprintf('%f,%f,%f,%f', v,a,t,b);
+                L = sprintf('%s%s',L,l);
+                l = sprintf(')\n');
+                L = sprintf('%s%s',L,l);
+                l = sprintf('write_output_integer_register(0, 1)\n');
+                L = sprintf('%s%s',L,l);
+                l = sprintf('write_output_integer_register(0, 2)\n');
+                L = sprintf('%s%s',L,l);
+            end
+
+            directory = "/home/wolff/AsteroidLab/AsteroidLab/MATLAB";
+            file = fileread(directory+"/Program_Template.script");
+
+            header = file(1:499);
+            footer = file(end-4:end);
+
+            command = sprintf('%s%s%s',header,L,footer);
+            this.rtde.Start();
+            
+            this.rtde.Set_Protocol_Version(1);
+            this.rtde.Set_Outputs('timestamp,output_int_register_0,actual_q,actual_qd,target_q,target_qd,target_qdd');
+            
+
+            % Execute Remote Move Program 
+            t = tcpclient(this.ip,30002);
+            write(t, unicode2native(command,'US-ASCII'));
+            clear t;
+            
+            while true
+                
+                pause(0.01);
+                this.rtde.Collect();
+                if this.rtde.latest{2} == 2
+                    break
+                end
+            end
+            this.rtde.Pause();
         end
         
         

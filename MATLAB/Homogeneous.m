@@ -37,6 +37,8 @@ classdef Homogeneous < handle
             
         end
         
+        
+        
         function T = fromDH(DH_param)
            % From Denavit-Hartenberg (back comparison)
            % [theta, a(-1), d, alpha(-1),]
@@ -373,6 +375,25 @@ classdef Homogeneous < handle
             declination = atan2( dz, ab_projection );
 
             r = RMatrix.fromXYZ( [pi, pi/2-declination, pi/2-right_ascension] ).R;
+        end
+        
+        function distance = distanceTo(this,Target)
+            % Original Point
+            PointA = Homogeneous.fromT( this.T );
+
+            % Pointing Towards
+            PointB = Homogeneous.fromT( Target.T );
+
+            % Gradients
+            A = PointA.T;
+            B = PointB.T;
+
+            dx = B(1) - A(1);
+            dy = B(2) - A(2);
+            dz = B(3) - A(3);
+
+            distance = sqrt( dx^2 + dy^2 + dz^2);
+            
         end
         
     end
